@@ -35,12 +35,13 @@ export function middleware(request: NextRequest) {
     subdomain = undefined
   }
 
-  if (!pathname.startsWith('/http') && !pathname.startsWith('/https')) {
-    return NextResponse.next()
+  // If subdomain is detected and not 'www', handle subdomain redirection for all paths
+  if (subdomain && subdomain !== 'www') {
+    return handleSubdomainRedirection(request, subdomain) || NextResponse.next()
   }
 
-  // If there's no detected subdomain (or it's a common www host), treat as normal root-host behavior.
-  if (!subdomain || subdomain === 'www') {
+  // For root hosts, only handle if path starts with /http or /https
+  if (pathname.startsWith('/http') || pathname.startsWith('/https')) {
     const path = pathname.slice(1)
     const fullExternalUrl = decodePathToFullUrl(`${path}${search}`)
 
@@ -50,9 +51,8 @@ export function middleware(request: NextRequest) {
       const redirectTarget = `${request.nextUrl.protocol}//${request.nextUrl.host}/${detectedInputType}?url=${encodeURIComponent(fullExternalUrl)}`
       return NextResponse.redirect(new URL(redirectTarget, request.url))
     }
-  } else {
-    return handleSubdomainRedirection(request, subdomain) || NextResponse.next()
   }
+  return NextResponse.next()
 }
 
 function handleSubdomainRedirection(request: NextRequest, subdomain: string) {
