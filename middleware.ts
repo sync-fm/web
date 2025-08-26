@@ -14,15 +14,33 @@ function decodePathToFullUrl(path: string): string {
 }
 
 export function middleware(request: NextRequest) {
-  const host = request.headers.get('host') || ''
-  const subdomain = host.split('.')[0]
+  const hostHeader = request.headers.get('host') || ''
+  // remove port if present: e.g. "yt.localhost:3000" -> "yt.localhost"
+  const hostname = hostHeader.split(':')[0]
   const { pathname, search } = request.nextUrl
+
+  // Determine subdomain rules:
+  // - For hosts that end with ".localhost" treat two-label hosts like "yt.localhost" as having a subdomain.
+  // - For normal domains, require 3+ labels to consider the first label a subdomain (e.g. "yt.syncfm.dev").
+  // - For single-label hosts like "localhost" treat as no subdomain.
+  let subdomain: string | undefined
+  const labels = hostname.split('.')
+  if (hostname === 'localhost') {
+    subdomain = undefined
+  } else if (hostname.endsWith('.localhost') && labels.length >= 2) {
+    subdomain = labels[0]
+  } else if (labels.length >= 3) {
+    subdomain = labels[0]
+  } else {
+    subdomain = undefined
+  }
 
   if (!pathname.startsWith('/http') && !pathname.startsWith('/https')) {
     return NextResponse.next()
   }
 
-  if (!subdomain || subdomain === 'www' || subdomain === host) {
+  // If there's no detected subdomain (or it's a common www host), treat as normal root-host behavior.
+  if (!subdomain || subdomain === 'www') {
     const path = pathname.slice(1)
     const fullExternalUrl = decodePathToFullUrl(`${path}${search}`)
 
