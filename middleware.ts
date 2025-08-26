@@ -37,6 +37,13 @@ export function middleware(request: NextRequest) {
 
   // If subdomain is detected and not 'www', handle subdomain redirection for all paths
   if (subdomain && subdomain !== 'www') {
+    // Prevent redirect loops: don't rewrite internal framework or API routes
+    // or requests that are already hitting our handler.
+    const skipPrefixes = ['/api/', '/_next/', '/_static/', '/favicon.ico', '/robots.txt']
+    for (const prefix of skipPrefixes) {
+      if (pathname.startsWith(prefix)) return NextResponse.next()
+    }
+
     return handleSubdomainRedirection(request, subdomain) || NextResponse.next()
   }
 
@@ -60,6 +67,8 @@ function handleSubdomainRedirection(request: NextRequest, subdomain: string) {
   if (!desiredService) return NextResponse.next()
 
   const path = request.nextUrl.pathname.slice(1)
+  // If the path already targets our internal handler, don't redirect again
+  if (path.startsWith('api/handle') || path.startsWith('api/')) return NextResponse.next()
   const fullExternalUrl = decodePathToFullUrl(`${path}${request.nextUrl.search}`)
 
   const redirectTarget = `${request.nextUrl.protocol}//${request.nextUrl.host}/api/handle/${desiredService}?url=${encodeURIComponent(fullExternalUrl)}`
