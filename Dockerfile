@@ -9,7 +9,7 @@ COPY package.json package-lock.json* ./
 COPY bun.lock* ./
 
 # Install all deps (including devDeps needed for build)
-RUN npm ci
+RUN npm install
 
 # Copy source and build
 COPY . .
