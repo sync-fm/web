@@ -15,12 +15,10 @@ export async function generateMetadata(props: any): Promise<Metadata> {
         const data = await getConvertedForUrl(url) as SyncFMAlbum
         if (!data) return {}
 
-        const thinBg = await getThinBackgroundColorFromImageUrl(data.imageUrl);
         return {
             metadataBase: new URL('https://syncfm.dev'),
             title: `${data.title} — SyncFM`,
             description: data.description || (data.artists ? `${data.artists.join(', ')}` : undefined),
-            themeColor: thinBg,
             openGraph: {
                 title: `${data.title} — SyncFM`,
                 description: data.description || (data.artists ? `${data.artists.join(', ')}` : undefined),

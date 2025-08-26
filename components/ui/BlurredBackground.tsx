@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface BlurredBackgroundProps {
   imageUrl?: string;
@@ -16,7 +16,9 @@ export function BlurredBackground({
   className = "",
   thinBackgroundColor 
 }: BlurredBackgroundProps) {
-  const [primaryColor, secondaryColor, tertiaryColor] = dominantColors;
+  const [primaryColor, secondaryColor] = dominantColors;
+  const [isMobile, setIsMobile] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -53,6 +55,24 @@ export function BlurredBackground({
     };
   }, [thinBackgroundColor]);
 
+  // Detect mobile and reduced-motion to reduce heavy effects on constrained devices
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mm = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onMM = () => setPrefersReducedMotion(Boolean(mm.matches));
+    onMM();
+    mm.addEventListener?.('change', onMM);
+
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    onResize();
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      mm.removeEventListener?.('change', onMM);
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
+
   return (
     <div className={`absolute inset-0 overflow-hidden ${className}`}>
       {/* Extend background to cover safe areas using CSS env() */}
@@ -75,103 +95,82 @@ export function BlurredBackground({
       <motion.div
         className="absolute inset-0 bg-gradient-to-br from-black via-gray-800 to-gray-900"
         initial={{ opacity: 1 }}
-        animate={{ opacity: imageUrl ? 0.3 : 1 }}
-        transition={{ duration: 1.5, ease: "easeOut" }}
+        animate={{ opacity: imageUrl ? 0.28 : 1 }}
+        transition={{ duration: 0.9, ease: "easeOut" }}
+        style={{ willChange: 'opacity' }}
       />
 
-      {/* Primary blurred image layer - heavily blurred and scaled up */}
+      {/* Primary blurred image layer - reduced blur and GPU-friendly transform */}
       {imageUrl && (
         <motion.div
           key={`primary-${imageUrl}`}
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 0.6, scale: 1.3 }}
-          transition={{ 
-            duration: 1.2, 
-            ease: [0.25, 0.46, 0.45, 0.94],
-            delay: 0.3
+          initial={{ opacity: 0, scale: isMobile ? 1.06 : 1.08 }}
+          animate={{ opacity: prefersReducedMotion ? 0.5 : 0.55, scale: isMobile ? 1.08 : 1.12 }}
+          transition={{
+            duration: prefersReducedMotion ? 0.8 : 1.0,
+            ease: "easeOut",
+            delay: 0.25
           }}
           className="absolute inset-0"
           style={{
             backgroundImage: `url(${imageUrl})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(120px) saturate(2.5) brightness(0.9)',
-            transform: 'scale(1.3)',
+            filter: `blur(${isMobile ? 24 : 48}px) saturate(1.6) brightness(0.9)`,
+            transform: `scale(${isMobile ? 1.08 : 1.12}) translateZ(0)`,
+            willChange: 'opacity, transform'
           }}
         />
       )}
 
-      {/* Secondary blur layer for depth */}
-      {imageUrl && (
+      {/* Secondary subtle blur layer for depth (omitted when reduced-motion is enabled) */}
+      {imageUrl && !prefersReducedMotion && (
         <motion.div
           key={`secondary-${imageUrl}`}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 0.4, scale: 1.2 }}
-          transition={{ 
-            duration: 1.5, 
-            ease: [0.25, 0.46, 0.45, 0.94],
-            delay: 0.6
+          initial={{ opacity: 0, scale: isMobile ? 1.02 : 1.04 }}
+          animate={{ opacity: isMobile ? 0.18 : 0.28, scale: isMobile ? 1.04 : 1.08 }}
+          transition={{
+            duration: 1.1,
+            ease: "easeOut",
+            delay: 0.5
           }}
           className="absolute inset-0"
           style={{
             backgroundImage: `url(${imageUrl})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(80px) saturate(3) brightness(0.7)',
-            transform: 'scale(1.2)',
+            filter: `blur(${isMobile ? 14 : 28}px) saturate(1.8) brightness(0.8)`,
+            transform: `scale(${isMobile ? 1.04 : 1.08}) translateZ(0)`,
+            willChange: 'opacity, transform'
           }}
         />
       )}
 
-      {/* Color gradient overlay inspired by dominant colors */}
+      {/* Color gradient overlay inspired by dominant colors (kept lightweight) */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: imageUrl ? 1 : 0 }}
-        transition={{ duration: 2, delay: 0.8 }}
-        className="absolute inset-0"
+        animate={{ opacity: imageUrl ? 0.9 : 0 }}
+        transition={{ duration: 1.2, delay: 0.6 }}
+        className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse 150% 150% at 30% 20%, ${primaryColor}60 0%, transparent 60%),
-            radial-gradient(ellipse 120% 120% at 70% 80%, ${secondaryColor || primaryColor}50 0%, transparent 60%),
-            radial-gradient(ellipse 100% 100% at 50% 50%, ${tertiaryColor || primaryColor}40 0%, transparent 60%)
+            radial-gradient(ellipse 130% 130% at 20% 18%, ${primaryColor}30 0%, transparent 50%),
+            radial-gradient(ellipse 100% 100% at 80% 82%, ${secondaryColor || primaryColor}18 0%, transparent 50%)
           `,
+          mixBlendMode: 'screen'
         }}
       />
 
-      {/* Additional vibrant overlay for iOS-like richness */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: imageUrl ? 1 : 0 }}
-        transition={{ duration: 2.5, delay: 1.2 }}
-        className="absolute inset-0"
+      {/* Subtle static vibrant overlay kept simple to avoid continuous repaints */}
+      <div
+        className="absolute inset-0 pointer-events-none"
         style={{
-          background: `
-            conic-gradient(from 0deg at 30% 70%, ${primaryColor}30, ${secondaryColor || primaryColor}20, ${tertiaryColor || primaryColor}30, ${primaryColor}30)
-          `,
-          filter: 'blur(150px)',
+          background: `linear-gradient(120deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02))`,
+          mixBlendMode: 'overlay'
         }}
       />
 
-      {/* Subtle animated gradient for that iOS fluidity */}
-      <motion.div
-        className="absolute inset-0"
-        initial={{ opacity: 0 }}
-        animate={{ 
-          opacity: imageUrl ? 1 : 0,
-          background: imageUrl ? [
-            `linear-gradient(45deg, ${primaryColor}15, ${secondaryColor || primaryColor}10, transparent)`,
-            `linear-gradient(135deg, ${secondaryColor || primaryColor}15, ${tertiaryColor || primaryColor}10, transparent)`,
-            `linear-gradient(225deg, ${tertiaryColor || primaryColor}15, ${primaryColor}10, transparent)`,
-            `linear-gradient(45deg, ${primaryColor}15, ${secondaryColor || primaryColor}10, transparent)`,
-          ] : undefined
-        }}
-        transition={{ 
-          opacity: { duration: 2, delay: 1.5 },
-          background: { duration: 20, repeat: Infinity, ease: "linear" }
-        }}
-      />
-
-      {/* Top overlay for iOS-like depth and darkness */}
+      {/* Top overlay for depth and darkness */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
