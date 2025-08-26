@@ -8,9 +8,12 @@
   "scripts": {
     "dev": "dotenvx run -- next dev --turbopack",
     "build": "next build",
+    "start:ci": "next start",
     "start": "dotenvx run -- next start",
     "lint": "eslint"
   },
+  "engines": { "node": "20" },
+  "packageManager": "npm@10.9.3",
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0",
     "clsx": "^2.1.1",
