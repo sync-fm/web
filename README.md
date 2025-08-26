@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SyncFM
 
-## Getting Started
+Universal music links - convert and open songs, albums, and artists across Spotify, Apple Music, YouTube Music and more.
 
-First, run the development server:
+Built with Next.js + TypeScript and the `syncfm.ts` library to convert streaming links and generate cross-platform URLs or JSON representations.
+
+## Features
+
+- Convert song / album / artist URLs between streaming services.
+- Auto-detect input type and service from pasted links.
+- Server-side conversion endpoints for safe client usage.
+- Beautiful, responsive UI with dominant color extraction for immersive player cards.
+
+## Quick start
+
+Requirements:
+
+- Node.js 18+ (recommended) or Bun my beloved.
+- API keys etc in `syncfm.confic.ts` - see notes below.
+
+Install dependencies and run locally (using Bun):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+If you prefer npm/yarn/pnpm and the repository contains scripts in `package.json`, use your package manager of choice:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Build and start (assumes scripts `build` and `start` exist):
 
-## Learn More
+```bash
+bun run build
+bun run start
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Configuration
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The project imports a local config file: `syncfm.confic.ts`. Place any API keys or service configuration there. The app also exposes server endpoints that rely on the `syncfm.ts` library.
+By default syncfm.config.ts just reads from process.env, look at .env.example :3
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Usage
 
-## Deploy on Vercel
+- Web UI: open the app and paste a streaming URL (or use the `?url=` query param).
+- Direct API:
+	- Convert and redirect to a target service: `/api/handle/<service>?url=<ENCODED_URL>` (returns redirects or JSON depending on service).
+	- Stats: `/api/getStats` returns repository statistics used on the homepage.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Examples:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+https://your-localhost:3000/song?url=https%3A%2F%2Fopen.spotify.com%2Ftrack%2F...
+http://s.syncfm.dev/http://open.spotify.com/track/...  (subdomain shortcuts)
+```
+
+The middleware will also detect incoming `/http` or `/https` paths and redirect to the appropriate route.
+
+## Project layout (important files)
+
+- `app/` - Next.js App Router pages and API routes.
+	- `app/api/handle/[service]/route.ts` - main conversion/redirect handler.
+	- `app/api/getStats/route.ts` - homepage stats endpoint.
+- `components/` - React UI components and UI primitives (e.g. `MusicPlayerCard`, `StreamingServiceButtons`).
+- `lib/` - server helpers and shared utilities (`syncfm.server.ts`, `useDominantColors.ts`, `StreamingServices.ts`, `utils.ts`).
+- `middleware.ts` - path and subdomain handling for smart redirects.
+- `syncfm.confic.ts` - config for `syncfm.ts`.
+
+## Notes for developers
+
+- The code tries to avoid bundling `syncfm.ts` in the browser. Use the server API routes (in `app/api/handle`) to perform conversions.
+- Dominant color extraction is implemented in `lib/useDominantColors.ts` and used by the UI to theme the player cards.
+
+## Contributing
+
+Contributions are welcome. Open issues or PRs for bugs, improvements, or feature requests. Keep changes small and well-scoped.
+
+## License
+
+GPL-3.0 - see `LICENSE`

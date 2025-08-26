@@ -1,103 +1,156 @@
-import Image from "next/image";
+"use client"
+
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { SiApplemusic, SiSpotify, SiYoutubemusic } from "react-icons/si";
+
+// Container for staggered animations
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+    },
+  },
+};
+
+// Updated itemVariants to fix type errors
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 100, damping: 20 } as const,
+  },
+};
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [stats, setStats] = useState({ songs: 0, albums: 0, artists: 0 });
+  const [loading, setLoading] = useState(true);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch("/api/getStats");
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  return (
+    <div className="relative min-h-screen w-full overflow-hidden bg-gray-950 font-sans text-white">
+      {/* Dynamic Background with a liquid effect.
+        The radial gradient creates a soft, glowing orb effect.
+        The moving overlay with a subtle backdrop blur creates the liquid ripple effect.
+      */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        {/* Main background gradient */}
+        <div className="absolute inset-0 opacity-80"
+          style={{ background: 'radial-gradient(at 70% 20%, rgba(255, 107, 0, 0.4), transparent 60%), radial-gradient(at 30% 80%, rgba(255, 149, 0, 0.3), transparent 60%)' }}
+        ></div>
+
+        {/* Animated background element for dynamic feel */}
+        <motion.div
+          className="absolute inset-0 opacity-60"
+          style={{ background: 'radial-gradient(at 50% 50%, rgba(255, 193, 7, 0.2), transparent)' }}
+          animate={{ scale: [1, 1.2, 1], rotate: [0, 10, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+        />
+      </div>
+
+      {/* Main content container.
+        This container has the 'glass' effect. It uses backdrop-blur, a semi-transparent background,
+        and a border to give the illusion of floating glass.
+      */}
+      <div className="relative z-10 flex min-h-screen w-full items-center justify-center p-4 sm:p-8">
+        <motion.div
+          className="w-full max-w-xl rounded-3xl border border-white/20 bg-white/5 p-6 backdrop-blur-3xl shadow-2xl md:p-10"
+          initial="hidden"
+          animate="show"
+          variants={containerVariants}
+        >
+          {/* Header Section */}
+          <motion.div variants={itemVariants} className="text-center">
+            <h1 className="text-4xl font-bold md:text-5xl lg:text-6xl"
+              style={{ textShadow: '0 4px 12px rgba(0, 0, 0, 0.5)' }}
+            >
+              SyncFM
+            </h1>
+            <p className="mt-2 text-lg text-white/80 md:text-xl">
+              Discover, sync, and explore music across your favorite streaming platforms.
+            </p>
+          </motion.div>
+
+          {/* Service Icons Section */}
+          {/* Replaced react-icons with inline SVG to fix the import error */}
+          <motion.div variants={itemVariants} className="mt-6 flex items-center justify-center gap-6">
+            <motion.div whileHover={{ scale: 1.1 }} className="rounded-full bg-white/10 p-2 shadow-inner">
+              <SiSpotify className="w-8 h-8 text-green-500 drop-shadow-lg" title="Spotify" />
+
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.1 }} className="rounded-full bg-white/10 p-2 shadow-inner">
+
+              <SiApplemusic className="w-8 h-8 text-shadow-gray-200 drop-shadow-lg" title="Apple Music" />
+
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.1 }} className="rounded-full bg-white/10 p-2 shadow-inner">
+              <SiYoutubemusic className="w-8 h-8 text-red-400 drop-shadow-lg" title="YouTube Music" />
+
+            </motion.div>
+          </motion.div>
+
+          {/* Stats Section */}
+          <motion.div variants={itemVariants} className="mt-8 text-center">
+            {loading ? (
+              <div className="flex justify-center">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+                <span className="ml-3 text-white/70">Loading stats...</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                {/* Song Stats Card */}
+                <div className="w-full rounded-2xl bg-white/5 p-4 backdrop-blur-lg shadow-inner sm:w-1/3">
+                  <p className="text-2xl font-semibold">{stats.songs.toLocaleString()}</p>
+                  <p className="text-sm text-white/60">Songs</p>
+                </div>
+                {/* Album Stats Card */}
+                <div className="w-full rounded-2xl bg-white/5 p-4 backdrop-blur-lg shadow-inner sm:w-1/3">
+                  <p className="text-2xl font-semibold">{stats.albums.toLocaleString()}</p>
+                  <p className="text-sm text-white/60">Albums</p>
+                </div>
+                {/* Artist Stats Card */}
+                <div className="w-full rounded-2xl bg-white/5 p-4 backdrop-blur-lg shadow-inner sm:w-1/3">
+                  <p className="text-2xl font-semibold">{stats.artists.toLocaleString()}</p>
+                  <p className="text-sm text-white/60">Artists</p>
+                </div>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Input & Button Section */}
+          <motion.div variants={itemVariants} className="mt-8">
+            <input
+              type="text"
+              placeholder="Paste a music link here..."
+              className="w-full rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-lg text-white placeholder-white/60 backdrop-blur-lg shadow-inner transition duration-300 focus:outline-none focus:ring-2 focus:ring-white/50"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            <motion.button
+              className="mt-4 w-full rounded-xl bg-gradient-to-br from-orange-500 to-yellow-400 px-6 py-3 font-semibold text-white shadow-lg transition-transform duration-300 hover:scale-[1.02] active:scale-95"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Get universal link
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }
