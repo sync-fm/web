@@ -5,5 +5,3 @@ services:
       dockerfile: Dockerfile
     image: syncfm-web:latest
     restart: unless-stopped
-    ports:
-      - "3000:3000"
