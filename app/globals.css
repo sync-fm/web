@@ -123,3 +123,36 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Root elements should extend into safe areas */
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  min-height: 100dvh; /* Use dynamic viewport height if supported */
+  background-color: #FF7D00; /* Fallback color */
+}
+
+/* Ensure your app container extends to cover safe areas */
+#__next, .app-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* iOS safe area support */
+@supports (padding: max(0px)) {
+  .safe-area-full {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

@@ -44,8 +44,7 @@ export function middleware(request: NextRequest) {
     const path = pathname.slice(1)
     const fullExternalUrl = decodePathToFullUrl(`${path}${search}`)
 
-    const detectedService = syncfm.getStreamingServiceFromUrl(fullExternalUrl)
-    const detectedInputType = syncfm.getInputTypeFromUrl(fullExternalUrl, detectedService)
+    const detectedInputType = syncfm.getInputTypeFromUrl(fullExternalUrl)
 
     if (detectedInputType) {
       const redirectTarget = `${request.nextUrl.protocol}//${request.nextUrl.host}/${detectedInputType}?url=${encodeURIComponent(fullExternalUrl)}`

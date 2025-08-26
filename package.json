@@ -12,18 +12,22 @@
     "start": "dotenvx run -- next start",
     "lint": "eslint"
   },
-  "engines": { "node": "20" },
+  "engines": {
+    "node": "20"
+  },
   "packageManager": "npm@10.9.3",
   "dependencies": {
+    "@bufbuild/protobuf": "^2.7.0",
     "@supabase/supabase-js": "^2.56.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.12",
+    "jimp": "^1.6.0",
     "lucide-react": "^0.541.0",
     "next": "15.5.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-icons": "^5.5.0",
-    "syncfm.ts": "^1.0.3",
+    "syncfm.ts": "^1.0.4",
     "tailwind-merge": "^3.3.1",
     "tw-animate-css": "^1.3.7"
   },
@@ -35,6 +39,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
+    "eslint-config-next": "^15.5.1",
     "typescript": "^5"
   }
 }

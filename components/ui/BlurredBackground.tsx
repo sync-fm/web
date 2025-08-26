@@ -1,22 +1,76 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 
 interface BlurredBackgroundProps {
   imageUrl?: string;
   dominantColors: string[];
   className?: string;
+  thinBackgroundColor?: string;
 }
 
 export function BlurredBackground({ 
   imageUrl, 
   dominantColors, 
-  className = "" 
+  className = "",
+  thinBackgroundColor 
 }: BlurredBackgroundProps) {
   const [primaryColor, secondaryColor, tertiaryColor] = dominantColors;
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    // Use the server-calculated thin background color, or fallback to black
+    const safeAreaColor = thinBackgroundColor || '#000000';
+    
+    // Update document background color
+    document.documentElement.style.backgroundColor = safeAreaColor;
+    document.body.style.backgroundColor = safeAreaColor;
+    
+    // Update viewport meta theme-color for status bar on mobile
+    let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+    if (!themeColorMeta) {
+      themeColorMeta = document.createElement('meta');
+      themeColorMeta.name = 'theme-color';
+      document.head.appendChild(themeColorMeta);
+    }
+    themeColorMeta.content = safeAreaColor;
+    
+    // Update Apple status bar style
+    let appleStatusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement;
+    if (!appleStatusBarMeta) {
+      appleStatusBarMeta = document.createElement('meta');
+      appleStatusBarMeta.name = 'apple-mobile-web-app-status-bar-style';
+      document.head.appendChild(appleStatusBarMeta);
+    }
+    appleStatusBarMeta.content = 'black-translucent';
+
+    // Cleanup function to reset on unmount
+    return () => {
+      document.documentElement.style.backgroundColor = '';
+      document.body.style.backgroundColor = '';
+    };
+  }, [thinBackgroundColor]);
+
   return (
     <div className={`absolute inset-0 overflow-hidden ${className}`}>
+      {/* Extend background to cover safe areas using CSS env() */}
+      <div 
+        className="absolute inset-0"
+        style={{
+          top: 'env(safe-area-inset-top, 0)',
+          left: 'env(safe-area-inset-left, 0)',
+          right: 'env(safe-area-inset-right, 0)',
+          bottom: 'env(safe-area-inset-bottom, 0)',
+          marginTop: 'calc(-1 * env(safe-area-inset-top, 0))',
+          marginLeft: 'calc(-1 * env(safe-area-inset-left, 0))',
+          marginRight: 'calc(-1 * env(safe-area-inset-right, 0))',
+          marginBottom: 'calc(-1 * env(safe-area-inset-bottom, 0))',
+          backgroundColor: thinBackgroundColor || '#000000',
+        }}
+      />
+
       {/* Initial dark background matching LoadingUI */}
       <motion.div
         className="absolute inset-0 bg-gradient-to-br from-black via-gray-800 to-gray-900"

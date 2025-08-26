@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Invalid subdomain." }, { status: 400 });
     }
 
-    const inputType = syncfm.getInputTypeFromUrl(originalUrl, syncfm.getStreamingServiceFromUrl(originalUrl));
+    const inputType = syncfm.getInputTypeFromUrl(originalUrl);
     let convertedData;
     let convertedUrl;
     const noRedirect = rawService === 'syncfm' ? true : false;

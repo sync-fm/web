@@ -6,8 +6,8 @@ const serverSyncfm = new SyncFM(syncfmconfig)
 
 export async function getConvertedForUrl(originalUrl: string) {
   if (!originalUrl || !originalUrl.startsWith('http')) return null
-  const detectedService = serverSyncfm.getStreamingServiceFromUrl(originalUrl)
-  const inputType = serverSyncfm.getInputTypeFromUrl(originalUrl, detectedService)
+
+  const inputType = serverSyncfm.getInputTypeFromUrl(originalUrl)
   if (!inputType) return null
 
   switch (inputType) {

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { ArtistView } from '@/components/ArtistView'
 import { getConvertedForUrl } from '@/lib/syncfm.server'
+import { getThinBackgroundColorFromImageUrl } from '@/lib/serverColors'
+import { SyncFMArtist } from 'syncfm.ts';
 export const dynamic = 'force-dynamic';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,16 +12,18 @@ export async function generateMetadata(props: any): Promise<Metadata> {
     const url = Array.isArray(rawUrl) ? rawUrl[0] : rawUrl;
     if (!url) return {};
     try {
-        const data = await getConvertedForUrl(url)
+        const data = await getConvertedForUrl(url) as SyncFMArtist
         if (!data) return {}
 
+        const thinBg = await getThinBackgroundColorFromImageUrl(data.imageUrl);
         return {
             metadataBase: new URL('https://syncfm.dev'),
             title: `${data.name} — SyncFM`,
-            description: data.bio || data.description || undefined,
+            description: `Genres: ${data.genre?.join(", ")}` || undefined,
+            themeColor: thinBg,
             openGraph: {
                 title: `${data.name} — SyncFM`,
-                description: data.bio || data.description || undefined,
+                description: `Genres: ${data.genre?.join(", ")}` || undefined,
                 images: data.imageUrl ? [{ url: data.imageUrl, alt: data.name }] : undefined,
             },
         }
@@ -34,5 +38,13 @@ export default async function ArtistPage(props: any) {
     const rawUrl = paramsObj?.searchParams?.url ?? props.searchParams?.url;
     const url = Array.isArray(rawUrl) ? rawUrl[0] : rawUrl;
     if (!url) return null;
-    return <ArtistView url={url} />;
+
+    const data = await getConvertedForUrl(url) as SyncFMArtist;
+    const thinBg = await getThinBackgroundColorFromImageUrl(data?.imageUrl);
+
+    return (
+        <div style={{ backgroundColor: thinBg, minHeight: '100vh' }}>
+            <ArtistView url={url} data={data} thinBackgroundColor={thinBg} />
+        </div>
+    );
 }

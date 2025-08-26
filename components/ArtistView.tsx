@@ -6,8 +6,6 @@ import { motion } from "framer-motion"
 import { Play, Calendar, Clock } from "lucide-react"
 import type { SyncFMArtist, SyncFMExternalIdMapToDesiredService } from "syncfm.ts"
 import { SiSpotify } from "react-icons/si";
-
-// ...existing code...
 import { LoadingUI } from "./ui/LoadingUI"
 import { useDominantColors } from "@/lib/useDominantColors"
 import { formatDuration } from "@/lib/utils"
@@ -16,15 +14,22 @@ import { StreamingServiceButtons } from "@/components/ui/StreamingServiceButtons
 
 interface ArtistViewProps {
   url: string
+  thinBackgroundColor?: string;
+  data?: SyncFMArtist;
 }
 
-export function ArtistView({ url }: ArtistViewProps) {
+export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [artist, setArtist] = useState<SyncFMArtist>()
   const { colors: dominantColors, isAnalyzing } = useDominantColors(artist?.imageUrl, isLoading);
 
   useEffect(() => {
     async function fetchArtist() {
+      if (data) {
+        setArtist(data);
+        setIsLoading(false);
+        return;
+      }
       try {
         const response = await fetch('/api/handle/syncfm?url=' + encodeURIComponent(url));
         const data = await response.json();
@@ -37,10 +42,9 @@ export function ArtistView({ url }: ArtistViewProps) {
       }
     }
     fetchArtist();
-  }, [url])
+  }, [url, data])
 
   const getStreamingUrl = (service: keyof typeof SyncFMExternalIdMapToDesiredService) => {
-    // Avoid instantiating SyncFM in the client. Use server API to create URLs or fallback to the handler.
     return `/api/handle/${service}?url=${encodeURIComponent(url)}`;
   };
 
@@ -49,7 +53,7 @@ export function ArtistView({ url }: ArtistViewProps) {
   }
 
   return (
-    <MusicPlayerCard imageUrl={artist.imageUrl} dominantColors={dominantColors}>
+    <MusicPlayerCard imageUrl={artist.imageUrl} thinBackgroundColor={thinBackgroundColor} dominantColors={dominantColors}>
       {/* Artist Header */}
       <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
         {/* Artist Image */}

@@ -8,12 +8,22 @@ interface MusicPlayerCardProps {
   imageUrl?: string
   dominantColors: string[]
   children: ReactNode
+  thinBackgroundColor?: string
 }
 
-export function MusicPlayerCard({ imageUrl, dominantColors, children }: MusicPlayerCardProps) {
+export function MusicPlayerCard({
+  imageUrl,
+  dominantColors,
+  children,
+  thinBackgroundColor
+}: MusicPlayerCardProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <BlurredBackground imageUrl={imageUrl} dominantColors={dominantColors} />
+      <BlurredBackground
+        imageUrl={imageUrl}
+        dominantColors={dominantColors}
+        thinBackgroundColor={thinBackgroundColor}
+      />
       <div className="relative w-full max-w-4xl z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -22,8 +32,8 @@ export function MusicPlayerCard({ imageUrl, dominantColors, children }: MusicPla
           className="relative overflow-hidden rounded-3xl border border-white/20 bg-black/20 p-8 backdrop-blur-xl"
           style={{
             background: `
-              linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.1) 0%, 
+              linear-gradient(135deg,
+                rgba(255, 255, 255, 0.1) 0%,
                 rgba(255, 255, 255, 0.05) 100%
               ),
               rgba(0, 0, 0, 0.2)

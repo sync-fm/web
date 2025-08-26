@@ -13,19 +13,24 @@ import { StreamingServiceButtons } from "@/components/ui/StreamingServiceButtons
 
 interface AlbumViewProps {
   url: string
+  thinBackgroundColor?: string;
+  data?: SyncFMAlbum;
 }
 
-export default function AlbumView({ url }: AlbumViewProps) {
+export default function AlbumView({ url, thinBackgroundColor, data }: AlbumViewProps) {
   const [album, setAlbum] = useState<SyncFMAlbum | null>(null)
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const { colors: dominantColors, isAnalyzing } = useDominantColors(album?.imageUrl, !isDataLoaded);
 
   useEffect(() => {
     async function fetchAlbum() {
-      // Start fresh
       setAlbum(null);
       setIsDataLoaded(false);
-
+      if (data) {
+        setAlbum(data);
+        setIsDataLoaded(true);
+        return;
+      }
       try {
         const response = await fetch('/api/handle/syncfm?url=' + encodeURIComponent(url));
         const data = await response.json();
@@ -36,7 +41,7 @@ export default function AlbumView({ url }: AlbumViewProps) {
       }
     }
     fetchAlbum();
-  }, [url]);
+  }, [url, data]);
 
   // Use a useMemo hook to ensure the unique songs list is stable
   // and only recomputed when the album object itself changes.
@@ -63,20 +68,18 @@ export default function AlbumView({ url }: AlbumViewProps) {
 
   const getStreamingUrl = (service: keyof typeof SyncFMExternalIdMapToDesiredService) => {
     if (!album) return '';
-    // Avoid instantiating SyncFM in the client. Always route streaming actions through the server API.
     return `/api/handle/${service}?url=${encodeURIComponent(url)}`;
   };
 
-  // The single condition for showing the UI is that both data is loaded and color analysis is complete.
   if (!isDataLoaded || !album || isAnalyzing) {
     return <LoadingUI />;
   }
 
   return (
-    <MusicPlayerCard imageUrl={album.imageUrl} dominantColors={dominantColors}>
+    <MusicPlayerCard imageUrl={album.imageUrl} thinBackgroundColor={thinBackgroundColor} dominantColors={dominantColors}>
       <AnimatePresence mode="wait">
         <motion.div
-          key={album.syncId} // Use a unique key to trigger the animation on content change
+          key={album.syncId}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
