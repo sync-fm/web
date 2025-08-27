@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SyncFM } from 'syncfm.ts';
 import syncfmconfig from "@/syncfm.confic";
+import YTMusic from 'ytmusic-api'
 
 const syncfm = new SyncFM(syncfmconfig);
 
@@ -52,6 +53,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             inputSong,
             error: e?.stack || e?.message || String(err),
           })
+          // If the error is coming from the YouTube Music parsing (invalid video id),
+          // run a direct search using ytmusic-api and log the top results so we can
+          // compare behaviour between environments (local vs Coolify).
+          try {
+            if ((e?.message || "").includes('Invalid videoId') && service === 'ytmusic') {
+              const ytm = new YTMusic()
+              await ytm.initialize()
+              const q = `${inputSong.title} ${inputSong.artists?.join(', ')}`
+              const results = await ytm.searchSongs(q)
+              console.error('YTMusic diagnostic search results:', { query: q, top: results[0] })
+            }
+          } catch (subErr) {
+            console.error('YTMusic diagnostic search failed:', String(subErr))
+          }
           throw err
         }
         break;
