@@ -16,7 +16,7 @@
         "react-blurhash": "^0.3.0",
         "react-dom": "19.1.0",
         "react-icons": "^5.5.0",
-        "syncfm.ts": "^1.0.4",
+        "syncfm.ts": "^1.0.6",
         "tailwind-merge": "^3.3.1",
         "tw-animate-css": "^1.3.7",
       },
@@ -1118,7 +1118,7 @@
 
     "supports-preserve-symlinks-flag": ["supports-preserve-symlinks-flag@1.0.0", "", {}, "sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w=="],
 
-    "syncfm.ts": ["syncfm.ts@1.0.4", "", { "dependencies": { "@eslint/js": "^9.26.0", "@spotify/web-api-ts-sdk": "^1.2.0", "@supabase/supabase-js": "^2.56.0", "@types/express": "^5.0.2", "@types/node": "^22.15.18", "axios": "^1.11.0", "eslint": "^9.26.0", "express": "^5.1.0", "tsc-alias": "^1.8.16", "typescript": "^5.8.3", "typescript-eslint": "^8.32.1", "ytmusic-api": "^5.3.0" }, "bin": { "syncfm": "dist/server.js" } }, "sha512-qwDjmxx8KSe5u6ro/n6HI0bnPTp+mOi3e8UlTsAfipVUznknXlPDasBB3TJv7ki2uVjJ9nags/vYOQznXNab9Q=="],
+    "syncfm.ts": ["syncfm.ts@1.0.6", "", { "dependencies": { "@eslint/js": "^9.26.0", "@spotify/web-api-ts-sdk": "^1.2.0", "@supabase/supabase-js": "^2.56.0", "@types/express": "^5.0.2", "@types/node": "^22.15.18", "axios": "^1.11.0", "eslint": "^9.26.0", "express": "^5.1.0", "tsc-alias": "^1.8.16", "typescript": "^5.8.3", "typescript-eslint": "^8.32.1", "ytmusic-api": "^5.3.0" }, "bin": { "syncfm": "dist/server.js" } }, "sha512-LS6eg2pJtXaElEIfcaHtJxqn8LpPiscLONK8FJSwI57oBvAx9ajc1/EFKIru2lO6twZYjIV2iXGs/C43/BU7vQ=="],
 
     "tailwind-merge": ["tailwind-merge@3.3.1", "", {}, "sha512-gBXpgUm/3rp1lMZZrM/w7D8GKqshif0zAymAhbCyIt8KMe+0v9DQ7cdYLR4FHH/cKpdTXb+A/tKKU3eolfsI+g=="],
 

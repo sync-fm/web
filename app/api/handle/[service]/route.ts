@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SyncFM } from 'syncfm.ts';
 import syncfmconfig from "@/syncfm.confic";
-import YTMusic from 'ytmusic-api'
 
 const syncfm = new SyncFM(syncfmconfig);
 
@@ -9,14 +8,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     let rawService = (await params).service
     const originalUrl = request.nextUrl.searchParams.get('url')
-    // Basic debug: record incoming host and env-lite info (no secrets)
-    console.debug('api/handle request', {
-      host: request.headers.get('host'),
-      method: request.method,
-      subdomainParam: rawService,
-      originalUrl,
-      envNode: process.env.NODE_ENV,
-    })
 
     if (!originalUrl) {
       return NextResponse.json({ error: 'Missing URL parameter' }, { status: 400 })
@@ -35,80 +26,25 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const noRedirect = rawService === 'syncfm' ? true : false;
     if (noRedirect) { rawService = 'spotify' }
     const service = rawService as "applemusic" | "spotify" | "ytmusic";
-    // Add intermediate logging and per-type try/catch so we can capture
-    // library internals (e.g. errors coming from the ytmusic converter)
     switch (inputType) {
-      case 'song': {
-        const inputSong = await syncfm.getInputSongInfo(originalUrl)
-        try {
-          convertedData = await syncfm.convertSong(inputSong, service);
-          if (!noRedirect) {
-            convertedUrl = syncfm.createSongURL(convertedData, service);
-          }
-        } catch (err) {
-          const e = err as unknown as { stack?: string; message?: string }
-          console.error('Conversion error (song):', {
-            originalUrl,
-            service,
-            inputSong,
-            error: e?.stack || e?.message || String(err),
-          })
-          // If the error is coming from the YouTube Music parsing (invalid video id),
-          // run a direct search using ytmusic-api and log the top results so we can
-          // compare behaviour between environments (local vs Coolify).
-          try {
-            if ((e?.message || "").includes('Invalid videoId') && service === 'ytmusic') {
-              const ytm = new YTMusic()
-              await ytm.initialize()
-              const q = `${inputSong.title} ${inputSong.artists?.join(', ')}`
-              const results = await ytm.searchSongs(q)
-              console.error('YTMusic diagnostic search results:', { query: q, top: results[0] })
-            }
-          } catch (subErr) {
-            console.error('YTMusic diagnostic search failed:', String(subErr))
-          }
-          throw err
+      case 'song':
+        convertedData = await syncfm.convertSong(await syncfm.getInputSongInfo(originalUrl), service);
+        if (!noRedirect) {
+          convertedUrl = syncfm.createSongURL(convertedData, service);
         }
         break;
-      }
-      case 'album': {
-        const inputAlbum = await syncfm.getInputAlbumInfo(originalUrl)
-        try {
-          convertedData = await syncfm.convertAlbum(inputAlbum, service);
-          if (!noRedirect) {
-            convertedUrl = syncfm.createAlbumURL(convertedData, service);
-          }
-        } catch (err) {
-          const e = err as unknown as { stack?: string; message?: string }
-          console.error('Conversion error (album):', {
-            originalUrl,
-            service,
-            inputAlbum,
-            error: e?.stack || e?.message || String(err),
-          })
-          throw err
+      case 'album':
+        convertedData = await syncfm.convertAlbum(await syncfm.getInputAlbumInfo(originalUrl), service);
+        if (!noRedirect) {
+          convertedUrl = syncfm.createAlbumURL(convertedData, service);
         }
         break;
-      }
-      case 'artist': {
-        const inputArtist = await syncfm.getInputArtistInfo(originalUrl)
-        try {
-          convertedData = await syncfm.convertArtist(inputArtist, service);
-          if (!noRedirect) {
-            convertedUrl = syncfm.createArtistURL(convertedData, service);
-          }
-        } catch (err) {
-          const e = err as unknown as { stack?: string; message?: string }
-          console.error('Conversion error (artist):', {
-            originalUrl,
-            service,
-            inputArtist,
-            error: e?.stack || e?.message || String(err),
-          })
-          throw err
+      case 'artist':
+        convertedData = await syncfm.convertArtist(await syncfm.getInputArtistInfo(originalUrl), service);
+        if (!noRedirect) {
+          convertedUrl = syncfm.createArtistURL(convertedData, service);
         }
         break;
-      }
       default:
         return NextResponse.json({ error: "Invalid input type." }, { status: 400 });
     }
@@ -117,10 +53,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Conversion failed." }, { status: 404 });
     }
 
-    // If we're allowed to redirect, do so. The previous condition had a
-    // redundant check which prevented redirects in some cases.
-    if (!noRedirect && convertedUrl) {
-      return NextResponse.redirect(convertedUrl);
+    if (!noRedirect && !noRedirect) {
+      return NextResponse.redirect(convertedUrl || '/');
     }
 
     return NextResponse.json(convertedData);
