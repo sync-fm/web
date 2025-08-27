@@ -19,23 +19,44 @@ interface AlbumViewProps {
 
 export default function AlbumView({ url, thinBackgroundColor, data }: AlbumViewProps) {
   const [album, setAlbum] = useState<SyncFMAlbum | null>(null)
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const { colors: dominantColors, isAnalyzing } = useDominantColors(album?.imageUrl, !isDataLoaded);
+  const [isLoading, setIsLoading] = useState(true);
+  const { colors: dominantColors, isAnalyzing } = useDominantColors(album?.imageUrl, !true);
+ const [blurHash, setBlurHash] = useState<string | undefined>();
 
   useEffect(() => {
+        async function getBlurHash(imageUrl: string) {
+      try {
+        const response = await fetch('/api/getBackgroundBlurHash?url=' + encodeURIComponent(imageUrl));
+        const data = await response.json();
+        if (data.hash) {
+          setBlurHash(data.hash);
+          console.log("Fetched blur hash:", data.hash);
+        } else {
+          console.warn("No blur hash returned from API");
+        }
+      } catch (error) {
+        console.error("Error fetching blur hash:", error);
+      }
+    }
     async function fetchAlbum() {
       setAlbum(null);
-      setIsDataLoaded(false);
+      setIsLoading(true);
       if (data) {
         setAlbum(data);
-        setIsDataLoaded(true);
+        if (data.imageUrl) {
+          await getBlurHash(data.imageUrl);
+        }
+        setIsLoading(false);
         return;
       }
       try {
         const response = await fetch('/api/handle/syncfm?url=' + encodeURIComponent(url));
         const data = await response.json();
         setAlbum(data);
-        setIsDataLoaded(true);
+        if (data.imageUrl) {
+          await getBlurHash(data.imageUrl);
+        }
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching album data:", error);
       }
@@ -71,12 +92,16 @@ export default function AlbumView({ url, thinBackgroundColor, data }: AlbumViewP
     return `/api/handle/${service}?url=${encodeURIComponent(url)}`;
   };
 
-  if (!isDataLoaded || !album || isAnalyzing) {
+  if (isLoading || !album || isAnalyzing || !blurHash || typeof blurHash !== 'string') {
     return <LoadingUI />;
   }
 
   return (
-    <MusicPlayerCard imageUrl={album.imageUrl} thinBackgroundColor={thinBackgroundColor} dominantColors={dominantColors}>
+    <MusicPlayerCard
+      hash={blurHash}
+      dominantColors={dominantColors}
+      thinBackgroundColor={thinBackgroundColor || "#000"}
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={album.syncId}

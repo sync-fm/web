@@ -1,36 +1,55 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
+import { createPortal } from 'react-dom';
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { BlurHash } from "./BlurHash";
 
 interface BlurredBackgroundProps {
-  imageUrl?: string;
+  hash?: string;
   dominantColors: string[];
   className?: string;
   thinBackgroundColor?: string;
 }
 
-export function BlurredBackground({ 
-  imageUrl, 
-  dominantColors, 
+// Helper to generate random values for blob animation
+const random = (min: number, max: number) => Math.random() * (max - min) + min;
+
+// Helper to adjust hex color for variation
+const adjustColor = (hex: string, amount: number) => {
+  const hexToRgb = (h:string) => h.match(/.{2}/g)!.map((x) => parseInt(x, 16));
+  const rgbToHex = (r: number, g: number, b: number) =>
+    [r, g, b]
+      .map((x) => {
+        const hex = Math.max(0, Math.min(255, x)).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+      })
+      .join('');
+
+  const [r, g, b] = hexToRgb(hex.replace('#', ''));
+  const newR = r + amount;
+  const newG = g + amount;
+  const newB = b + amount;
+
+  return `#${rgbToHex(newR, newG, newB)}`;
+};
+
+export function BlurredBackground({
+  hash,
+  dominantColors,
   className = "",
-  thinBackgroundColor 
+  thinBackgroundColor
 }: BlurredBackgroundProps) {
-  const [primaryColor, secondaryColor] = dominantColors;
   const [isMobile, setIsMobile] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
+  // Set thin background color and theme color meta tag
   useEffect(() => {
     if (typeof document === 'undefined') return;
-
-    // Use the server-calculated thin background color, or fallback to black
     const safeAreaColor = thinBackgroundColor || '#000000';
-    
-    // Update document background color
     document.documentElement.style.backgroundColor = safeAreaColor;
     document.body.style.backgroundColor = safeAreaColor;
-    
-    // Update viewport meta theme-color for status bar on mobile
+
     let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
     if (!themeColorMeta) {
       themeColorMeta = document.createElement('meta');
@@ -38,24 +57,13 @@ export function BlurredBackground({
       document.head.appendChild(themeColorMeta);
     }
     themeColorMeta.content = safeAreaColor;
-    
-    // Update Apple status bar style
-    let appleStatusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement;
-    if (!appleStatusBarMeta) {
-      appleStatusBarMeta = document.createElement('meta');
-      appleStatusBarMeta.name = 'apple-mobile-web-app-status-bar-style';
-      document.head.appendChild(appleStatusBarMeta);
-    }
-    appleStatusBarMeta.content = 'black-translucent';
-
-    // Cleanup function to reset on unmount
     return () => {
       document.documentElement.style.backgroundColor = '';
       document.body.style.backgroundColor = '';
     };
   }, [thinBackgroundColor]);
 
-  // Detect mobile and reduced-motion to reduce heavy effects on constrained devices
+  // Detect reduced motion preference and screen size
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mm = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -73,117 +81,139 @@ export function BlurredBackground({
     };
   }, []);
 
-  return (
-    <div className={`absolute inset-0 overflow-hidden ${className}`}>
-      {/* Extend background to cover safe areas using CSS env() */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          top: 'env(safe-area-inset-top, 0)',
-          left: 'env(safe-area-inset-left, 0)',
-          right: 'env(safe-area-inset-right, 0)',
-          bottom: 'env(safe-area-inset-bottom, 0)',
-          marginTop: 'calc(-1 * env(safe-area-inset-top, 0))',
-          marginLeft: 'calc(-1 * env(safe-area-inset-left, 0))',
-          marginRight: 'calc(-1 * env(safe-area-inset-right, 0))',
-          marginBottom: 'calc(-1 * env(safe-area-inset-bottom, 0))',
-          backgroundColor: thinBackgroundColor || '#000000',
-        }}
-      />
+  // Create memoized blob properties
+  const blobs = React.useMemo(() => {
+    if (!dominantColors || dominantColors.length === 0) return [];
 
-      {/* Initial dark background matching LoadingUI */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-black via-gray-800 to-gray-900"
-        initial={{ opacity: 1 }}
-        animate={{ opacity: imageUrl ? 0.28 : 1 }}
-        transition={{ duration: 0.9, ease: "easeOut" }}
-        style={{ willChange: 'opacity' }}
-      />
+    const allColors = [...dominantColors];
 
-      {/* Primary blurred image layer - reduced blur and GPU-friendly transform */}
-      {imageUrl && (
+    // Create variations of the dominant colors
+    dominantColors.forEach(color => {
+        allColors.push(adjustColor(color, 30)); // Lighter shade
+        allColors.push(adjustColor(color, -30)); // Darker shade
+    });
+
+    // Ensure we have at least 10 unique colors to choose from
+    const uniqueColors = [...new Set(allColors)];
+    while (uniqueColors.length < 10) {
+        uniqueColors.push(uniqueColors[0], uniqueColors[1]);
+    }
+
+    // Use up to 10 unique colors for the blobs
+    return uniqueColors.slice(0, 10).map((color, i) => ({
+      id: i,
+      color,
+      top: `${random(-40, 60)}%`,
+      left: `${random(-40, 60)}%`,
+      width: `${random(40, isMobile ? 80 : 60)}vw`,
+      height: `${random(40, isMobile ? 80 : 60)}vw`,
+      duration: random(30, 45),
+      delay: random(0, 8),
+    }));
+  }, [dominantColors, isMobile]);
+
+
+  const bg = (
+    <div
+      className={className}
+      style={{
+        position: 'fixed',
+        top: 'calc(-1 * env(safe-area-inset-top))',
+        bottom: 'calc(-1 * env(safe-area-inset-bottom))',
+        left: 0,
+        right: 0,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        zIndex: 0,
+        backgroundColor: 'black',
+        contain: 'none',
+      }}
+    >
+      {/* Base BlurHash layer for initial load */}
+      {hash && (
         <motion.div
-          key={`primary-${imageUrl}`}
-          initial={{ opacity: 0, scale: isMobile ? 1.06 : 1.08 }}
-          animate={{ opacity: prefersReducedMotion ? 0.5 : 0.55, scale: isMobile ? 1.08 : 1.12 }}
-          transition={{
-            duration: prefersReducedMotion ? 0.8 : 1.0,
-            ease: "easeOut",
-            delay: 0.25
-          }}
+          key={`hash-${hash}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.0, ease: "easeOut" }}
+          className="absolute inset-0 scale-110"
+        >
+          <BlurHash
+            hash={hash}
+          />
+        </motion.div>
+      )}
+
+      {/* Fluid blob container */}
+      <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.5, delay: 0.5, ease: "easeInOut" }}
           className="absolute inset-0"
           style={{
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: `blur(${isMobile ? 24 : 48}px) saturate(1.6) brightness(0.9)`,
-            transform: `scale(${isMobile ? 1.08 : 1.12}) translateZ(0)`,
-            willChange: 'opacity, transform'
+            filter: `blur(${isMobile ? 80 : 120}px) contrast(2) brightness(1.2)`,
+            willChange: 'filter',
+          }}
+      >
+          {!prefersReducedMotion && blobs.map(blob => (
+              <motion.div
+                  key={blob.id}
+                  className="absolute rounded-full"
+                  style={{
+                      top: blob.top,
+                      left: blob.left,
+                      width: blob.width,
+                      height: blob.height,
+                      background: `radial-gradient(circle at center, ${blob.color} 0%, transparent 60%)`,
+                      mixBlendMode: 'lighten',
+                      willChange: 'transform',
+                      backfaceVisibility: 'hidden',
+                  }}
+                  animate={{
+                      rotate: [0, 360],
+                      x: [0, random(-80, 80), random(-80, 80), 0],
+                      y: [0, random(-80, 80), random(-80, 80), 0],
+                      scale: [1, 1.15, 1, 0.9, 1],
+                  }}
+                  transition={{
+                      duration: blob.duration,
+                      delay: blob.delay,
+                      repeat: Infinity,
+                      repeatType: "mirror",
+                      ease: "easeInOut",
+                  }}
+              />
+          ))}
+      </motion.div>
+      
+      {/* Fallback for reduced motion: a simple static gradient */}
+      {prefersReducedMotion && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.5, ease: "easeInOut" }}
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse at 20% 20%, ${blobs[0]?.color || '#000'}40, transparent 70%),
+                         radial-gradient(ellipse at 80% 80%, ${blobs[1]?.color || '#000'}40, transparent 70%)`,
           }}
         />
       )}
 
-      {/* Secondary subtle blur layer for depth (omitted when reduced-motion is enabled) */}
-      {imageUrl && !prefersReducedMotion && (
-        <motion.div
-          key={`secondary-${imageUrl}`}
-          initial={{ opacity: 0, scale: isMobile ? 1.02 : 1.04 }}
-          animate={{ opacity: isMobile ? 0.18 : 0.28, scale: isMobile ? 1.04 : 1.08 }}
-          transition={{
-            duration: 1.1,
-            ease: "easeOut",
-            delay: 0.5
-          }}
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: `blur(${isMobile ? 14 : 28}px) saturate(1.8) brightness(0.8)`,
-            transform: `scale(${isMobile ? 1.04 : 1.08}) translateZ(0)`,
-            willChange: 'opacity, transform'
-          }}
-        />
-      )}
-
-      {/* Color gradient overlay inspired by dominant colors (kept lightweight) */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: imageUrl ? 0.9 : 0 }}
-        transition={{ duration: 1.2, delay: 0.6 }}
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(ellipse 130% 130% at 20% 18%, ${primaryColor}30 0%, transparent 50%),
-            radial-gradient(ellipse 100% 100% at 80% 82%, ${secondaryColor || primaryColor}18 0%, transparent 50%)
-          `,
-          mixBlendMode: 'screen'
-        }}
-      />
-
-      {/* Subtle static vibrant overlay kept simple to avoid continuous repaints */}
+      {/* Lil overlay for some depth*/}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `linear-gradient(120deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02))`,
-          mixBlendMode: 'overlay'
-        }}
-      />
-
-      {/* Top overlay for depth and darkness */}
-      <div 
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `
-            linear-gradient(
-              to bottom,
-              rgba(0, 0, 0, 0.1) 0%,
-              rgba(0, 0, 0, 0.05) 40%,
-              rgba(0, 0, 0, 0.1) 100%
-            )
-          `,
+          background: `linear-gradient(to bottom, rgba(0,0,0,0.05), transparent 40%, rgba(0,0,0,0.1))`,
         }}
       />
     </div>
   );
+
+  // Render into document.body to avoid ancestor transform clipping on mobile
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(bg, document.body);
+  }
+
+  return bg;
 }

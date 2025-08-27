@@ -21,12 +21,29 @@ interface ArtistViewProps {
 export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [artist, setArtist] = useState<SyncFMArtist>()
-  const { colors: dominantColors, isAnalyzing } = useDominantColors(artist?.imageUrl, isLoading);
-
+  const { colors: dominantColors, isAnalyzing } = useDominantColors(artist?.imageUrl, true);
+  const [blurHash, setBlurHash] = useState<string | undefined>();
   useEffect(() => {
+        async function getBlurHash(imageUrl: string) {
+      try {
+        const response = await fetch('/api/getBackgroundBlurHash?url=' + encodeURIComponent(imageUrl));
+        const data = await response.json();
+        if (data.hash) {
+          setBlurHash(data.hash);
+          console.log("Fetched blur hash:", data.hash);
+        } else {
+          console.warn("No blur hash returned from API");
+        }
+      } catch (error) {
+        console.error("Error fetching blur hash:", error);
+      }
+    }
     async function fetchArtist() {
       if (data) {
         setArtist(data);
+        if (data.imageUrl) {
+          await getBlurHash(data.imageUrl);
+        }
         setIsLoading(false);
         return;
       }
@@ -35,6 +52,9 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
         const data = await response.json();
         setArtist(data);
         console.log("Fetched artist data:", data);
+        if (data.imageUrl) {
+          await getBlurHash(data.imageUrl);
+        }
       } catch (error) {
         console.error("Error fetching artist data:", error);
       } finally {
@@ -48,12 +68,16 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
     return `/api/handle/${service}?url=${encodeURIComponent(url)}`;
   };
 
-  if (isLoading || !artist || isAnalyzing) {
+  if (isLoading || !artist || isAnalyzing || !blurHash || typeof blurHash !== 'string') {
     return <LoadingUI />;
   }
 
   return (
-    <MusicPlayerCard imageUrl={artist.imageUrl} thinBackgroundColor={thinBackgroundColor} dominantColors={dominantColors}>
+    <MusicPlayerCard
+      hash={blurHash}
+      dominantColors={dominantColors}
+      thinBackgroundColor={thinBackgroundColor || "#000"}
+    >
       {/* Artist Header */}
       <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
         {/* Artist Image */}
