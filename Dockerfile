@@ -13,7 +13,7 @@ RUN npm install --force
 
 # Copy source and build
 COPY . .
-RUN npm run build && npm prune --production
+RUN npm run build
 
 # Runner stage
 FROM node:20-alpine AS runner
