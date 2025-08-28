@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Play, Clock, Music } from "lucide-react"
-import type { SyncFMAlbum, SyncFMExternalIdMapToDesiredService } from "syncfm.ts"
+import type { SyncFMAlbum, SyncFMExternalIdMapToDesiredService } from '@/syncfm.ts';
 import { LoadingUI } from "./ui/LoadingUI"
 import { useDominantColors } from "@/lib/useDominantColors"
 import { formatDuration, formatTotalDuration } from "@/lib/utils"

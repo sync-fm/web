@@ -1,4 +1,4 @@
-import { SyncFMConfig } from "syncfm.ts";
+import { SyncFMConfig } from '@/syncfm.ts';
 
 const config: SyncFMConfig = {
     SpotifyClientId: process.env.SPOTIFY_CLIENT_ID,

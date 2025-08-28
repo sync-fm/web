@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { SongView } from '@/components/SongView'
 import { getConvertedForUrl } from '@/lib/syncfm.server'
 import { getThinBackgroundColorFromImageUrl } from '@/lib/serverColors'
-import { SyncFMSong } from 'syncfm.ts';
+import { SyncFMSong } from '@/syncfm.ts';
 export const dynamic = 'force-dynamic';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

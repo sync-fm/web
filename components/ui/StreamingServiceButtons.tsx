@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { SiApplemusic, SiSpotify, SiYoutubemusic } from "react-icons/si"
-import { SyncFMExternalIdMapToDesiredService } from "syncfm.ts"
+import { SyncFMExternalIdMapToDesiredService } from '@/syncfm.ts';
 
 const streamingServices = [
   { name: "Spotify", service: "spotify", color: "rgb(30, 215, 96)", Logo: SiSpotify },

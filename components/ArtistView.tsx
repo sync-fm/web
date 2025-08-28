@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Play, Calendar, Clock } from "lucide-react"
-import type { SyncFMArtist, SyncFMExternalIdMapToDesiredService } from "syncfm.ts"
+import type { SyncFMArtist, SyncFMExternalIdMapToDesiredService } from '@/syncfm.ts';
 import { SiSpotify } from "react-icons/si";
 import { LoadingUI } from "./ui/LoadingUI"
 import { useDominantColors } from "@/lib/useDominantColors"

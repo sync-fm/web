@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SyncFM } from "syncfm.ts";
-import syncfmconfig from "@/syncfm.confic";
+import { SyncFM } from '@/syncfm.ts';
+import syncfmconfig from "@/syncfm.config";
 
 export const syncfm = new SyncFM(syncfmconfig)
 

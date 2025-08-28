@@ -3,14 +3,14 @@
 
 import { motion } from "framer-motion"
 import { Play } from "lucide-react"
-import type { SyncFMSong } from "syncfm.ts"
+import type { SyncFMSong } from '@/syncfm.ts';
 import { useState, useEffect } from "react"
 import { LoadingUI } from "./ui/LoadingUI"
 import { useDominantColors } from "@/lib/useDominantColors"
 import { formatDuration } from "@/lib/utils"
 import { MusicPlayerCard } from "@/components/ui/MusicPlayerCard"
 import { StreamingServiceButtons } from "@/components/ui/StreamingServiceButtons"
-import type { SyncFMExternalIdMapToDesiredService } from "syncfm.ts"
+import type { SyncFMExternalIdMapToDesiredService } from '@/syncfm.ts';
 
 interface SongViewProps {
   url: string

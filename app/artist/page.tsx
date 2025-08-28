@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { ArtistView } from '@/components/ArtistView'
 import { getConvertedForUrl } from '@/lib/syncfm.server'
 import { getThinBackgroundColorFromImageUrl } from '@/lib/serverColors'
-import { SyncFMArtist } from 'syncfm.ts';
+import { SyncFMArtist } from '@/syncfm.ts';
 export const dynamic = 'force-dynamic';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
