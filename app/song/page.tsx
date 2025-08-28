@@ -12,6 +12,7 @@ export async function generateMetadata(props: any): Promise<Metadata> {
     // Prefer paramsObj.searchParams, fall back to props.searchParams. Use optional chaining to avoid throws.
     const rawUrl = paramsObj?.searchParams?.url ?? await props.searchParams?.url;
     const url = Array.isArray(rawUrl) ? rawUrl[0] : rawUrl;
+    console.log("url in generateMetadata:", url);
     if (!url) return {};
     try {
         const data = await getConvertedForUrl(url) as SyncFMSong
@@ -40,6 +41,7 @@ export default async function SongPage(props: any) {
     const paramsObj = props.params ? await props.params : undefined;
     const rawUrl = paramsObj?.searchParams?.url ?? await props.searchParams?.url;
     const url = Array.isArray(rawUrl) ? rawUrl[0] : rawUrl;
+    console.log("url in SongPage:", url);
 
     if (!url) {
         return null;
