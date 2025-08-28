@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "ytmusic-api/**",
+      "syncfm.ts/**"
     ],
   },
 ];
