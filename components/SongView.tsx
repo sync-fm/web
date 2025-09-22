@@ -21,12 +21,30 @@ interface SongViewProps {
 export function SongView({ url, thinBackgroundColor, data }: SongViewProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [song, setSong] = useState<SyncFMSong>()
-  const { colors: dominantColors, isAnalyzing } = useDominantColors(song?.imageUrl, isLoading);
+  const { colors: dominantColors, isAnalyzing } = useDominantColors(song?.imageUrl, true);
+  const [blurHash, setBlurHash] = useState<string | undefined>();
 
   useEffect(() => {
+    async function getBlurHash(imageUrl: string) {
+      try {
+        const response = await fetch('/api/getBackgroundBlurHash?url=' + encodeURIComponent(imageUrl));
+        const data = await response.json();
+        if (data.hash) {
+          setBlurHash(data.hash);
+          console.log("Fetched blur hash:", data.hash);
+        } else {
+          console.warn("No blur hash returned from API");
+        }
+      } catch (error) {
+        console.error("Error fetching blur hash:", error);
+      }
+    }
     async function fetchSong() {
       if (data) {
         setSong(data);
+        if (data.imageUrl) {
+          await getBlurHash(data.imageUrl);
+        }
         setIsLoading(false);
         return;
       }
@@ -35,6 +53,11 @@ export function SongView({ url, thinBackgroundColor, data }: SongViewProps) {
         const data = await response.json();
         setSong(data);
         console.log("Fetched song data:", data);
+
+        if (data.imageUrl) {
+          await getBlurHash(data.imageUrl);
+        }
+
       } catch (error) {
         console.error("Error fetching song data:", error);
       } finally {
@@ -103,15 +126,15 @@ export function SongView({ url, thinBackgroundColor, data }: SongViewProps) {
     return promise;
   }, [song, url]);
 
-  if (isLoading || !song || isAnalyzing) {
+  if (isLoading || !song || isAnalyzing || !blurHash || typeof blurHash !== 'string') {
     return <LoadingUI />;
   }
 
   return (
     <MusicPlayerCard
-      imageUrl={song.imageUrl}
+      hash={blurHash}
       dominantColors={dominantColors}
-      thinBackgroundColor={thinBackgroundColor}
+      thinBackgroundColor={thinBackgroundColor || "#000"}
     >
       <div className="relative max-w-sm w-full z-10 mx-auto">
         <motion.div

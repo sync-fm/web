@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 export async function generateMetadata(props: any): Promise<Metadata> {
     const paramsObj = props.params ? await props.params : undefined;
     // Prefer paramsObj.searchParams, fall back to props.searchParams. Use optional chaining to avoid throws.
-    const rawUrl = paramsObj?.searchParams?.url ?? props.searchParams?.url;
+    const rawUrl = paramsObj?.searchParams?.url ?? await props.searchParams?.url;
     const url = Array.isArray(rawUrl) ? rawUrl[0] : rawUrl;
     if (!url) return {};
     try {
@@ -39,7 +39,7 @@ export async function generateMetadata(props: any): Promise<Metadata> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function SongPage(props: any) {
     const paramsObj = props.params ? await props.params : undefined;
-    const rawUrl = paramsObj?.searchParams?.url ?? props.searchParams?.url;
+    const rawUrl = paramsObj?.searchParams?.url ?? await props.searchParams?.url;
     const url = Array.isArray(rawUrl) ? rawUrl[0] : rawUrl;
 
     if (!url) {
@@ -50,8 +50,6 @@ export default async function SongPage(props: any) {
     const thinBg = await getThinBackgroundColorFromImageUrl(data?.imageUrl);
 
     return (
-        <div style={{ backgroundColor: thinBg, minHeight: '100vh' }}>
             <SongView url={url} data={data} thinBackgroundColor={thinBg} />
-        </div>
     );
 }
