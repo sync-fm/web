@@ -1,4 +1,4 @@
-import syncfmconfig from "@/syncfm.confic";
+import syncfmconfig from "@/syncfm.config";
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 

@@ -16,7 +16,7 @@ Built with Next.js + TypeScript and the `syncfm.ts` library to convert streaming
 Requirements:
 
 - Node.js 18+ (recommended) or Bun my beloved.
-- API keys etc in `syncfm.confic.ts` - see notes below.
+- API keys etc in `syncfm.config.ts` - see notes below.
 
 Install dependencies and run locally (using Bun):
 
@@ -41,7 +41,7 @@ bun run start
 
 ## Configuration
 
-The project imports a local config file: `syncfm.confic.ts`. Place any API keys or service configuration there. The app also exposes server endpoints that rely on the `syncfm.ts` library.
+The project imports a local config file: `syncfm.config.ts`. Place any API keys or service configuration there. The app also exposes server endpoints that rely on the `syncfm.ts` library.
 By default syncfm.config.ts just reads from process.env, look at .env.example :3
 
 ## Usage
@@ -68,7 +68,7 @@ The middleware will also detect incoming `/http` or `/https` paths and redirect 
 - `components/` - React UI components and UI primitives (e.g. `MusicPlayerCard`, `StreamingServiceButtons`).
 - `lib/` - server helpers and shared utilities (`syncfm.server.ts`, `useDominantColors.ts`, `StreamingServices.ts`, `utils.ts`).
 - `middleware.ts` - path and subdomain handling for smart redirects.
-- `syncfm.confic.ts` - config for `syncfm.ts`.
+- `syncfm.config.ts` - config for `syncfm.ts`.
 
 ## Notes for developers
 

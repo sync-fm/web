@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SyncFM } from "syncfm.ts";
-import syncfmconfig from "@/syncfm.confic";
+import syncfmconfig from "@/syncfm.config";
 
-export const syncfm = new SyncFM(syncfmconfig)
+// Lazy initialize SyncFM to avoid constructor side-effects at module import time
+let _syncfm: SyncFM | null = null;
+function getSyncfm(): SyncFM {
+  if (!_syncfm) {
+    try {
+      _syncfm = new SyncFM(syncfmconfig);
+    } catch (err) {
+      // If construction fails (missing envs in some runtimes), keep null and
+      // allow middleware callers to handle absence gracefully.
+      console.warn('SyncFM initialization in middleware failed:', err);
+      throw err;
+    }
+  }
+  return _syncfm;
+}
 
 function decodePathToFullUrl(path: string): string {
   let decoded = decodeURIComponent(path)
@@ -52,7 +66,14 @@ export function middleware(request: NextRequest) {
     const path = pathname.slice(1)
     const fullExternalUrl = decodePathToFullUrl(`${path}${search}`)
 
-    const detectedInputType = syncfm.getInputTypeFromUrl(fullExternalUrl)
+    let detectedInputType: string | null | undefined;
+    try {
+      detectedInputType = getSyncfm().getInputTypeFromUrl(fullExternalUrl) // handled above
+    } catch (err) {
+      // If SyncFM isn't available (e.g. missing env vars), skip redirection.
+      console.warn('middleware: could not detect input type due to SyncFM init failure', err)
+      detectedInputType = null
+    }
 
     if (detectedInputType) {
       const redirectTarget = `${request.nextUrl.protocol}//${request.nextUrl.host}/${detectedInputType}?url=${encodeURIComponent(fullExternalUrl)}`
@@ -63,7 +84,12 @@ export function middleware(request: NextRequest) {
 }
 
 function handleSubdomainRedirection(request: NextRequest, subdomain: string) {
-  const desiredService = getDesiredServiceFromSubdomain(subdomain)
+  let desiredService: "applemusic" | "spotify" | "ytmusic" | "syncfm" | undefined;
+  try {
+    desiredService = getDesiredServiceFromSubdomain(subdomain)
+  } catch (err) {
+    desiredService = undefined
+  }
   if (!desiredService) return NextResponse.next()
 
   const path = request.nextUrl.pathname.slice(1)

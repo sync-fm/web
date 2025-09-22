@@ -1,5 +1,6 @@
 
 import { clsx, type ClassValue } from "clsx"
+import type { ServiceName, SyncFMExternalIdMap } from "syncfm.ts"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
@@ -32,3 +33,9 @@ export const formatTotalDuration = (seconds?: number) => {
   }
   return `${mins} min`
 }
+
+export const SERVICE_TO_EXTERNAL_KEY: Record<ServiceName, keyof SyncFMExternalIdMap | undefined> = {
+  applemusic: "AppleMusic",
+  ytmusic: "YouTube",
+  spotify: "Spotify",
+};

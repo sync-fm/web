@@ -1,29 +1,23 @@
-import { Jimp } from 'jimp';
-
 export async function getDominantColorFromImageUrl(imageUrl?: string): Promise<string | null> {
     if (!imageUrl) return null;
     try {
+        // Lazy import jimp so importing this module in non-Node or edge
+        // runtimes doesn't immediately throw.
+        const { Jimp } = await import('jimp');
         const image = await Jimp.read(imageUrl);
 
         // Resize down for performance
-        // Resize while keeping aspect ratio without relying on Jimp.AUTO typings
         const targetWidth = 100;
         const aspectRatio = image.bitmap.height / Math.max(1, image.bitmap.width);
         const targetHeight = Math.max(1, Math.round(targetWidth * aspectRatio));
-        image.resize({
-            w: targetWidth,
-            h: targetHeight,
-        });
+        image.resize({ w: targetWidth, h: targetHeight });
 
         // Use built-in color histogram
         const palette: Record<string, number> = {};
         image.scan(0, 0, image.bitmap.width, image.bitmap.height, function (x: number, y: number, idx: number) {
-            // use the outer `image` reference instead of `this` to avoid typing issues
             const r = image.bitmap.data[idx + 0] as number;
             const g = image.bitmap.data[idx + 1] as number;
             const b = image.bitmap.data[idx + 2] as number;
-
-            // reduce precision to cluster similar colors
             const key = [Math.round(r / 16) * 16, Math.round(g / 16) * 16, Math.round(b / 16) * 16].join(',');
             palette[key] = (palette[key] || 0) + 1;
         });

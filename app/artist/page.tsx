@@ -4,6 +4,7 @@ import { getConvertedForUrl } from '@/lib/syncfm.server'
 import { getThinBackgroundColorFromImageUrl } from '@/lib/serverColors'
 import { SyncFMArtist } from 'syncfm.ts';
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function generateMetadata(props: any): Promise<Metadata> {

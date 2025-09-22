@@ -3,14 +3,14 @@
 
 import { motion } from "framer-motion"
 import { Play } from "lucide-react"
-import type { SyncFMSong } from "syncfm.ts"
-import { useState, useEffect } from "react"
+import type { ServiceName, SyncFMSong } from "syncfm.ts"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { LoadingUI } from "./ui/LoadingUI"
 import { useDominantColors } from "@/lib/useDominantColors"
 import { formatDuration } from "@/lib/utils"
 import { MusicPlayerCard } from "@/components/ui/MusicPlayerCard"
 import { StreamingServiceButtons } from "@/components/ui/StreamingServiceButtons"
-import type { SyncFMExternalIdMapToDesiredService } from "syncfm.ts"
+import { SERVICE_TO_EXTERNAL_KEY } from "@/lib/utils"
 
 interface SongViewProps {
   url: string
@@ -42,11 +42,66 @@ export function SongView({ url, thinBackgroundColor, data }: SongViewProps) {
       }
     }
     fetchSong();
-  }, [url, data])
+  }, [url, data]);
 
-  const getStreamingUrl = (service: keyof typeof SyncFMExternalIdMapToDesiredService) => {
-    return `/api/handle/${service}?url=${encodeURIComponent(url)}`;
-  };
+  const streamingUrlCacheRef = useRef<Map<ServiceName, Promise<string> | string>>(new Map());
+  useEffect(() => {
+    streamingUrlCacheRef.current.clear();
+  }, [song?.syncId]);
+
+  const getStreamingUrl = useCallback(async (service: ServiceName): Promise<string> => {
+    if (!song) {
+      return Promise.reject(new Error("song not loaded"));
+    }
+
+    const cache = streamingUrlCacheRef.current;
+    const cached = cache.get(service);
+    if (cached) {
+      // Already resolved string
+      if (typeof cached === "string") {
+        return cached;
+      }
+      // Promise in flight
+      return cached;
+    }
+
+    const promise = (async (): Promise<string> => {
+      // Check direct external id mapping first
+      const externalKey = SERVICE_TO_EXTERNAL_KEY[service];
+      const externalid = externalKey ? song.externalIds?.[externalKey] : undefined;
+
+      if (externalid) {
+        try {
+          const createURLRes: { url: string } = await fetch('/api/createUrl', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              service: service,
+              input: song,
+              type: 'song'
+            }),
+          }).then(res => res.json());
+          if (createURLRes && createURLRes.url) {
+            streamingUrlCacheRef.current.set(service, createURLRes.url);
+            return createURLRes.url;
+          }
+        } catch (e) {
+          console.error("createUrl failed:", e);
+          // fall through to default handler below
+        }
+      }
+
+      const fallback = `/api/handle/${service}?url=${encodeURIComponent(url)}`;
+      // cache fallback result
+      streamingUrlCacheRef.current.set(service, fallback);
+      return fallback;
+    })();
+
+    cache.set(service, promise);
+    return promise;
+  }, [song, url]);
 
   if (isLoading || !song || isAnalyzing) {
     return <LoadingUI />;

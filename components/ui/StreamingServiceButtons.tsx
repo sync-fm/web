@@ -2,19 +2,68 @@
 
 import { motion } from "framer-motion"
 import { SiApplemusic, SiSpotify, SiYoutubemusic } from "react-icons/si"
-import { SyncFMExternalIdMapToDesiredService } from "syncfm.ts"
+import type { ServiceName } from "syncfm.ts"
+import { useEffect, useState } from "react"
 
-const streamingServices = [
+interface StreamingService {
+  name: string
+  service: ServiceName
+  color: string
+  Logo: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
+}
+
+const streamingServices: StreamingService[] = [
   { name: "Spotify", service: "spotify", color: "rgb(30, 215, 96)", Logo: SiSpotify },
   { name: "YouTube Music", service: "ytmusic", color: "rgb(255, 0, 0)", Logo: SiYoutubemusic },
   { name: "Apple Music", service: "applemusic", color: "rgb(250, 250, 250)", Logo: SiApplemusic },
 ]
 
 interface StreamingServiceButtonsProps {
-  createUrl: (service: keyof typeof SyncFMExternalIdMapToDesiredService) => string
+  createUrl: (service: ServiceName) => Promise<string>
 }
 
 export function StreamingServiceButtons({ createUrl }: StreamingServiceButtonsProps) {
+  const [urls, setUrls] = useState<Record<ServiceName, string | null>>({
+    spotify: null,
+    ytmusic: null,
+    applemusic: null,
+  })
+
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+
+    // Kick off all fetches in parallel and dedupe is handled by createUrl's cache
+    Promise.all(
+      streamingServices.map(s =>
+        createUrl(s.service)
+          .then(u => ({ service: s.service, url: u }))
+          .catch(err => {
+            console.error(`Failed to get URL for ${s.service}:`, err)
+            return { service: s.service, url: "" }
+          })
+      )
+    ).then(results => {
+      if (!mounted) return
+      const next: Record<ServiceName, string | null> = {
+        spotify: null,
+        ytmusic: null,
+        applemusic: null,
+      }
+      results.forEach(({ service, url }) => {
+        next[service] = url || null
+      })
+      setUrls(next)
+      setLoading(false)
+    })
+
+    return () => {
+      mounted = false
+    }
+  }, [createUrl])
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -23,18 +72,19 @@ export function StreamingServiceButtons({ createUrl }: StreamingServiceButtonsPr
       className="flex flex-wrap items-stretch justify-center gap-3 md:justify-start"
     >
       {streamingServices.map(({ name, service, color, Logo }) => {
-        const url = createUrl(service as keyof typeof SyncFMExternalIdMapToDesiredService)
-        if (!url) return null
+        const url = urls[service]
+        const isDisabled = !url || loading
 
         return (
           <motion.a
             key={service}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            className="group relative flex flex-1 basis-[160px] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm transition-all duration-300"
+            href={isDisabled ? undefined : url || undefined}
+            target={isDisabled ? undefined : "_blank"}
+            rel={isDisabled ? undefined : "noopener noreferrer"}
+            whileHover={{ scale: isDisabled ? 1 : 1.05, y: isDisabled ? 0 : -2 }}
+            whileTap={{ scale: isDisabled ? 1 : 0.95 }}
+            className={`group relative flex flex-1 basis-[160px] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm transition-all duration-300 ${isDisabled ? "opacity-60 cursor-default pointer-events-none" : ""
+              }`}
             style={{
               background: `
                 linear-gradient(135deg,

@@ -1,31 +1,43 @@
 export const runtime = 'nodejs';
 import { SyncFM } from 'syncfm.ts'
-import syncfmconfig from '@/syncfm.confic'
+import syncfmconfig from '@/syncfm.config'
 
-const serverSyncfm = new SyncFM(syncfmconfig)
+let serverSyncfm: SyncFM | null = null;
+function getServerSyncfm(): SyncFM {
+  if (!serverSyncfm) {
+    serverSyncfm = new SyncFM(syncfmconfig);
+  }
+  return serverSyncfm;
+}
 
 export async function getConvertedForUrl(originalUrl: string) {
   if (!originalUrl || !originalUrl.startsWith('http')) return null
 
-  const inputType = serverSyncfm.getInputTypeFromUrl(originalUrl)
-  if (!inputType) return null
+  try {
+    const ss = getServerSyncfm();
+    const inputType = ss.getInputTypeFromUrl(originalUrl)
 
-  switch (inputType) {
-    case 'song': {
-      const input = await serverSyncfm.getInputSongInfo(originalUrl)
-      return await serverSyncfm.convertSong(input, 'spotify')
+    if (!inputType) return null
+
+    switch (inputType) {
+      case 'song': {
+        return await ss.getInputSongInfo(originalUrl)
+      }
+      case 'album': {
+        return await ss.getInputAlbumInfo(originalUrl)
+      }
+      case 'artist': {
+        return await ss.getInputArtistInfo(originalUrl)
+      }
+      default:
+        return null
     }
-    case 'album': {
-      const input = await serverSyncfm.getInputAlbumInfo(originalUrl)
-      return await serverSyncfm.convertAlbum(input, 'spotify')
-    }
-    case 'artist': {
-      const input = await serverSyncfm.getInputArtistInfo(originalUrl)
-      return await serverSyncfm.convertArtist(input, 'spotify')
-    }
-    default:
-      return null
+  } catch (err) {
+    // Return null on any error to allow callers (like generateMetadata)
+    // to fail gracefully instead of causing a module import-time crash.
+    console.warn('getConvertedForUrl failed:', err);
+    return null;
   }
 }
 
-export { serverSyncfm }
+export { getServerSyncfm as serverSyncfm }
