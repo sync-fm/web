@@ -3,15 +3,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
-import { Play, Calendar, Clock } from "lucide-react"
-import type { ServiceName, SyncFMArtist } from "syncfm.ts"
+import { Play, Pause, Calendar, Clock } from "lucide-react"
+import type { ServiceName, SyncFMArtist, SyncFMArtistTrack } from "syncfm.ts"
 import { SiSpotify } from "react-icons/si";
 import { LoadingUI } from "./ui/LoadingUI"
 import { useDominantColors } from "@/lib/useDominantColors"
 import { formatDuration } from "@/lib/utils"
 import { MusicPlayerCard } from "@/components/ui/MusicPlayerCard"
 import { StreamingServiceButtons } from "@/components/ui/StreamingServiceButtons"
-import { SERVICE_TO_EXTERNAL_KEY } from "@/lib/utils"
 
 interface ArtistViewProps {
   url: string
@@ -24,17 +23,65 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
   const [artist, setArtist] = useState<SyncFMArtist>()
   const { colors: dominantColors, isAnalyzing } = useDominantColors(artist?.imageUrl, true);
   const [blurHash, setBlurHash] = useState<string | undefined>();
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
-        async function getBlurHash(imageUrl: string) {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.setActionHandler("play", () => {
+        audioEl.play();
+      });
+      navigator.mediaSession.setActionHandler("pause", () => {
+        audioEl.pause();
+      });
+    }
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    audioEl.addEventListener("play", handlePlay);
+    audioEl.addEventListener("pause", handlePause);
+
+    return () => {
+      audioEl.removeEventListener("play", handlePlay);
+      audioEl.removeEventListener("pause", handlePause);
+    };
+  }, []);
+
+  const handlePlayPause = (track: SyncFMArtistTrack) => {
+    if (!track.contentUrl || !audioRef.current || !artist) return;
+
+    if (currentlyPlaying === track.contentUrl) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+    } else {
+      setCurrentlyPlaying(track.contentUrl);
+      audioRef.current.src = track.contentUrl;
+      audioRef.current.play();
+
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: track.title,
+          artist: artist.name,
+          album: 'Top Tracks',
+          artwork: [{ src: track.thumbnailUrl || "/placeholder.svg" }],
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    async function getBlurHash(imageUrl: string) {
       try {
         const response = await fetch('/api/getBackgroundBlurHash?url=' + encodeURIComponent(imageUrl));
         const data = await response.json();
-        if (data.hash) {
-          setBlurHash(data.hash);
-          console.log("Fetched blur hash:", data.hash);
-        } else {
-          console.warn("No blur hash returned from API");
-        }
+        if (data.hash) setBlurHash(data.hash);
       } catch (error) {
         console.error("Error fetching blur hash:", error);
       }
@@ -42,20 +89,15 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
     async function fetchArtist() {
       if (data) {
         setArtist(data);
-        if (data.imageUrl) {
-          await getBlurHash(data.imageUrl);
-        }
+        if (data.imageUrl) await getBlurHash(data.imageUrl);
         setIsLoading(false);
         return;
       }
       try {
         const response = await fetch('/api/handle/syncfm?url=' + encodeURIComponent(url));
-        const data = await response.json();
-        setArtist(data);
-        console.log("Fetched artist data:", data);
-        if (data.imageUrl) {
-          await getBlurHash(data.imageUrl);
-        }
+        const fetchedData = await response.json();
+        setArtist(fetchedData);
+        if (fetchedData.imageUrl) await getBlurHash(fetchedData.imageUrl);
       } catch (error) {
         console.error("Error fetching artist data:", error);
       } finally {
@@ -71,53 +113,28 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
   }, [artist?.syncId]);
 
   const getStreamingUrl = useCallback(async (service: ServiceName): Promise<string> => {
-    if (!artist) {
-      return Promise.reject(new Error("Artist not loaded"));
-    }
+    if (!artist) return Promise.reject(new Error("Artist not loaded"));
 
     const cache = streamingUrlCacheRef.current;
     const cached = cache.get(service);
-    if (cached) {
-      // Already resolved string
-      if (typeof cached === "string") {
-        return cached;
-      }
-      // Promise in flight
-      return cached;
-    }
+    if (cached) return cached;
 
     const promise = (async (): Promise<string> => {
-      // Check direct external id mapping first
-      const externalKey = SERVICE_TO_EXTERNAL_KEY[service];
-      const externalid = externalKey ? artist.externalIds?.[externalKey] : undefined;
-
-      if (externalid) {
-        try {
-          const createURLRes: { url: string } = await fetch('/api/createUrl', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              service: service,
-              input: artist,
-              type: 'artist'
-            }),
-          }).then(res => res.json());
-          if (createURLRes && createURLRes.url) {
-            streamingUrlCacheRef.current.set(service, createURLRes.url);
-            return createURLRes.url;
-          }
-        } catch (e) {
-          console.error("createUrl failed:", e);
-          // fall through to default handler below
+      try {
+        const res = await fetch('/api/createUrl', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ service, input: artist, type: 'artist' }),
+        });
+        const { url: createdUrl } = await res.json();
+        if (createdUrl) {
+          streamingUrlCacheRef.current.set(service, createdUrl);
+          return createdUrl;
         }
+      } catch (e) {
+        console.error("createUrl failed:", e);
       }
-
-      const fallback = `/api/handle/${service}?url=${encodeURIComponent(url)}`;
-      // cache fallback result
-      streamingUrlCacheRef.current.set(service, fallback);
-      return fallback;
+      return `/api/handle/${service}?url=${encodeURIComponent(url)}`;
     })();
 
     cache.set(service, promise);
@@ -134,6 +151,20 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
       dominantColors={dominantColors}
       thinBackgroundColor={thinBackgroundColor || "#000"}
     >
+      {/* hidden audio element for playback */}
+      <audio
+        ref={audioRef}
+        onEnded={() => setIsPlaying(false)}
+        onTimeUpdate={() => {
+          if (audioRef.current && "mediaSession" in navigator) {
+            navigator.mediaSession.setPositionState?.({
+              duration: audioRef.current.duration,
+              position: audioRef.current.currentTime,
+            });
+          }
+        }}
+      />
+
       {/* Artist Header */}
       <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
         {/* Artist Image */}
@@ -157,7 +188,6 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
             )}
           </div>
         </motion.div>
-
         {/* Artist Info */}
         <div className="flex-1 text-center md:text-left">
           <motion.h1
@@ -172,7 +202,6 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
             {artist.name}
           </motion.h1>
 
-          {/* Genres */}
           {artist.genre && artist.genre.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -184,9 +213,7 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
                 <span
                   key={index}
                   className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-medium text-white/90 backdrop-blur-sm"
-                  style={{
-                    textShadow: "0 2px 8px rgba(0, 0, 0, 0.6)",
-                  }}
+                  style={{ textShadow: "0 2px 8px rgba(0, 0, 0, 0.6)" }}
                 >
                   {genre}
                 </span>
@@ -215,59 +242,71 @@ export function ArtistView({ url, thinBackgroundColor, data }: ArtistViewProps) 
             Popular Tracks
           </h2>
           <div className="space-y-3">
-            {artist.tracks.slice(0, 5).map((track, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.7 + index * 0.1 }}
-                className="group flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 hover:bg-white/10"
-              >
-                {/* Track Thumbnail */}
-                <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-white/10">
-                  {track.thumbnailUrl ? (
-                    <img
-                      src={track.thumbnailUrl || "/placeholder.svg"}
-                      alt={track.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <SiSpotify className="h-6 w-6 text-white/50" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Play className="h-4 w-4 text-white" />
-                  </div>
-                </div>
+            {artist.tracks.slice(0, 5).map((track, index) => {
+              const isActive = currentlyPlaying === track.contentUrl;
+              const hasPreview = !!track.contentUrl;
 
-                {/* Track Info */}
-                <div className="flex-1">
-                  <h3
-                    className="font-medium text-white"
-                    style={{
-                      textShadow: "0 2px 8px rgba(0, 0, 0, 0.6)",
-                    }}
-                  >
-                    {track.name}
-                  </h3>
-                  {track.uploadDate && (
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.02, duration: 0.3 }}
+                  onClick={() => handlePlayPause(track)}
+                  className={`group flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 ${hasPreview ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                    }`}
+                >
+                  {/* Track Thumbnail */}
+                  <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-white/10">
+                    {track.thumbnailUrl ? (
+                      <img
+                        src={track.thumbnailUrl || "/placeholder.svg"}
+                        alt={track.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <SiSpotify className="h-6 w-6 text-white/50" />
+                      </div>
+                    )}
+                    {/* Play/Pause icon */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                      {isActive && isPlaying ? (
+                        <Pause className="h-4 w-4 text-white" />
+                      ) : (
+                        <Play className="h-4 w-4 text-white" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Track Info */}
+                  <div className="flex-1">
+                    <h3
+                      className="font-medium text-white"
+                      style={{
+                        textShadow: "0 2px 8px rgba(0, 0, 0, 0.6)",
+                      }}
+                    >
+                      {track.title}
+                    </h3>
+                    {track.uploadDate && (
+                      <div className="flex items-center gap-1 text-sm text-white/70">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(track.uploadDate).getFullYear()}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Duration */}
+                  {track.duration && (
                     <div className="flex items-center gap-1 text-sm text-white/70">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(track.uploadDate).getFullYear()}
+                      <Clock className="h-3 w-3" />
+                      {formatDuration(track.duration)}
                     </div>
                   )}
-                </div>
-
-                {/* Duration */}
-                {track.duration && (
-                  <div className="flex items-center gap-1 text-sm text-white/70">
-                    <Clock className="h-3 w-3" />
-                    {formatDuration(track.duration)}
-                  </div>
-                )}
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
       )}

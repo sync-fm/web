@@ -357,8 +357,6 @@ export default function Home() {
                 )}
               </motion.div>
             </div>
-
-            {/* generated link is shown inside the input to avoid layout shifts */}
           </motion.div>
         </motion.div>
       </div>

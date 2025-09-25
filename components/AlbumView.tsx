@@ -10,7 +10,6 @@ import { useDominantColors } from "@/lib/useDominantColors"
 import { formatDuration, formatTotalDuration } from "@/lib/utils"
 import { MusicPlayerCard } from "@/components/ui/MusicPlayerCard"
 import { StreamingServiceButtons } from "@/components/ui/StreamingServiceButtons"
-import { SERVICE_TO_EXTERNAL_KEY } from "@/lib/utils"
 
 interface AlbumViewProps {
   url: string
@@ -22,16 +21,15 @@ export default function AlbumView({ url, thinBackgroundColor, data }: AlbumViewP
   const [album, setAlbum] = useState<SyncFMAlbum | null>(null)
   const [isLoading, setIsLoading] = useState(true);
   const { colors: dominantColors, isAnalyzing } = useDominantColors(album?.imageUrl, !true);
- const [blurHash, setBlurHash] = useState<string | undefined>();
+  const [blurHash, setBlurHash] = useState<string | undefined>();
 
   useEffect(() => {
-        async function getBlurHash(imageUrl: string) {
+    async function getBlurHash(imageUrl: string) {
       try {
         const response = await fetch('/api/getBackgroundBlurHash?url=' + encodeURIComponent(imageUrl));
         const data = await response.json();
         if (data.hash) {
           setBlurHash(data.hash);
-          console.log("Fetched blur hash:", data.hash);
         } else {
           console.warn("No blur hash returned from API");
         }
@@ -65,8 +63,6 @@ export default function AlbumView({ url, thinBackgroundColor, data }: AlbumViewP
     fetchAlbum();
   }, [url, data]);
 
-  // Use a useMemo hook to ensure the unique songs list is stable
-  // and only recomputed when the album object itself changes.
   const uniqueSongs = useMemo(() => {
     if (!album) return [];
 
@@ -110,31 +106,25 @@ export default function AlbumView({ url, thinBackgroundColor, data }: AlbumViewP
     }
 
     const promise = (async (): Promise<string> => {
-      // Check direct external id mapping first
-      const externalKey = SERVICE_TO_EXTERNAL_KEY[service];
-      const externalid = externalKey ? album.externalIds?.[externalKey] : undefined;
-
-      if (externalid) {
-        try {
-          const createURLRes: { url: string } = await fetch('/api/createUrl', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              service: service,
-              input: album,
-              type: 'album'
-            }),
-          }).then(res => res.json());
-          if (createURLRes && createURLRes.url) {
-            streamingUrlCacheRef.current.set(service, createURLRes.url);
-            return createURLRes.url;
-          }
-        } catch (e) {
-          console.error("createUrl failed:", e);
-          // fall through to default handler below
+      try {
+        const createURLRes: { url?: string } = await fetch('/api/createUrl', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            service: service,
+            input: album,
+            type: 'album'
+          }),
+        }).then(res => res.json());
+        if (createURLRes && createURLRes.url) {
+          streamingUrlCacheRef.current.set(service, createURLRes.url);
+          return createURLRes.url;
         }
+      } catch (e) {
+        console.error("createUrl failed:", e);
+        // fall through to default handler below
       }
 
       const fallback = `/api/handle/${service}?url=${encodeURIComponent(url)}`;
@@ -238,48 +228,45 @@ export default function AlbumView({ url, thinBackgroundColor, data }: AlbumViewP
               Tracks
             </h3>
             <div className="space-y-1">
-              <AnimatePresence>
-                {uniqueSongs.map((song, index) => (
-                  <motion.div
-                    key={song.syncId}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
-                    transition={{ delay: 0.05 + index * 0.03 }} // Reduced delay for faster animation
-                    className="group flex items-center gap-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 p-3 transition-all duration-300 hover:bg-white/20 hover:border-white/30"
-                  >
-                    <div className="flex-shrink-0 w-8 text-center">
-                      <span
-                        className="text-sm text-white/70 group-hover:hidden"
-                        style={{ textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9)" }}
-                      >
-                        {index + 1}
-                      </span>
-                      <Play className="h-4 w-4 text-white/90 hidden group-hover:block mx-auto" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-white font-medium truncate"
-                        style={{ textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9)" }}
-                      >
-                        {song.title}
-                      </p>
-                      <p
-                        className="text-white/80 text-sm truncate"
-                        style={{ textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9)" }}
-                      >
-                        {song.artists.join(", ")}
-                      </p>
-                    </div>
-                    <div
-                      className="flex-shrink-0 text-white/70 text-sm"
-                      style={{ textShadow: "0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.9)" }}
+              {uniqueSongs.map((song, index) => (
+                <motion.div
+                  key={song.syncId}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.02, duration: 0.3 }}
+                  className="group flex items-center gap-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 p-3 transition-all duration-300 hover:bg-white/20 hover:border-white/30"
+                >
+                  <div className="flex-shrink-0 w-8 text-center">
+                    <span
+                      className="text-sm text-white/70 group-hover:hidden"
+                      style={{ textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9)" }}
                     >
-                      {formatDuration(song.duration)}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                      {index + 1}
+                    </span>
+                    <Play className="h-4 w-4 text-white/90 hidden group-hover:block mx-auto" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="text-white font-medium truncate"
+                      style={{ textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9)" }}
+                    >
+                      {song.title}
+                    </p>
+                    <p
+                      className="text-white/80 text-sm truncate"
+                      style={{ textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9)" }}
+                    >
+                      {song.artists.join(", ")}
+                    </p>
+                  </div>
+                  <div
+                    className="flex-shrink-0 text-white/70 text-sm"
+                    style={{ textShadow: "0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.9)" }}
+                  >
+                    {formatDuration(song.duration)}
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         </motion.div>

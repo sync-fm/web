@@ -50,8 +50,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" href="/favicon.ico" />
-        
-        {/* These will be dynamically updated by the BlurredBackground component */}
+
         <meta name="theme-color" content="#FF7D00" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>

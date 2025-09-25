@@ -17,16 +17,14 @@ export function MusicPlayerCard({
   children,
   thinBackgroundColor
 }: MusicPlayerCardProps) {
-
-  console.log("MusicPlayerCard - hash:", hash);
   return (
-    <div className=" flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="flex min-h-screen items-center justify-center p-4 relative">
       <BlurredBackground
         hash={hash}
         dominantColors={dominantColors}
         thinBackgroundColor={thinBackgroundColor}
       />
-     
+
       <div className="relative w-full max-w-4xl z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

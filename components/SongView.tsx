@@ -10,7 +10,6 @@ import { useDominantColors } from "@/lib/useDominantColors"
 import { formatDuration } from "@/lib/utils"
 import { MusicPlayerCard } from "@/components/ui/MusicPlayerCard"
 import { StreamingServiceButtons } from "@/components/ui/StreamingServiceButtons"
-import { SERVICE_TO_EXTERNAL_KEY } from "@/lib/utils"
 
 interface SongViewProps {
   url: string
@@ -31,7 +30,6 @@ export function SongView({ url, thinBackgroundColor, data }: SongViewProps) {
         const data = await response.json();
         if (data.hash) {
           setBlurHash(data.hash);
-          console.log("Fetched blur hash:", data.hash);
         } else {
           console.warn("No blur hash returned from API");
         }
@@ -52,8 +50,6 @@ export function SongView({ url, thinBackgroundColor, data }: SongViewProps) {
         const response = await fetch('/api/handle/syncfm?url=' + encodeURIComponent(url));
         const data = await response.json();
         setSong(data);
-        console.log("Fetched song data:", data);
-
         if (data.imageUrl) {
           await getBlurHash(data.imageUrl);
         }
@@ -89,31 +85,25 @@ export function SongView({ url, thinBackgroundColor, data }: SongViewProps) {
     }
 
     const promise = (async (): Promise<string> => {
-      // Check direct external id mapping first
-      const externalKey = SERVICE_TO_EXTERNAL_KEY[service];
-      const externalid = externalKey ? song.externalIds?.[externalKey] : undefined;
-
-      if (externalid) {
-        try {
-          const createURLRes: { url: string } = await fetch('/api/createUrl', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              service: service,
-              input: song,
-              type: 'song'
-            }),
-          }).then(res => res.json());
-          if (createURLRes && createURLRes.url) {
-            streamingUrlCacheRef.current.set(service, createURLRes.url);
-            return createURLRes.url;
-          }
-        } catch (e) {
-          console.error("createUrl failed:", e);
-          // fall through to default handler below
+      try {
+        const createURLRes: { url?: string } = await fetch('/api/createUrl', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            service: service,
+            input: song,
+            type: 'song'
+          }),
+        }).then(res => res.json());
+        if (createURLRes && createURLRes.url) {
+          streamingUrlCacheRef.current.set(service, createURLRes.url);
+          return createURLRes.url;
         }
+      } catch (e) {
+        console.error("createUrl failed:", e);
+        // fall through to default handler below
       }
 
       const fallback = `/api/handle/${service}?url=${encodeURIComponent(url)}`;
