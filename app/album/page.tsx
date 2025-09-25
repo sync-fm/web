@@ -29,6 +29,12 @@ export async function generateMetadata(props: any): Promise<Metadata> {
                 description: data.description || (data.artists ? `${data.artists.join(', ')}` : undefined),
                 images: data.imageUrl ? [{ url: data.imageUrl, alt: data.title }] : undefined,
             },
+            twitter: {
+                card: "summary",
+                title: `${data.title} — SyncFM`,
+                description: data.description || (data.artists ? `${data.artists.join(', ')}` : undefined),
+                images: data.imageUrl ? [{ url: data.imageUrl, alt: data.title }] : undefined,
+            }
         }
     } catch {
         return {}

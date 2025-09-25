@@ -32,6 +32,13 @@ export async function generateMetadata(props: any): Promise<Metadata> {
                     data.description || (data.artists ? `${data.artists.join(', ')} — ${data.album || ''}` : undefined),
                 images: data.imageUrl ? [{ url: data.imageUrl, alt: data.title }] : undefined,
             },
+            twitter: {
+                card: "summary",
+                title: `${data.title} — SyncFM`,
+                description:
+                    data.description || (data.artists ? `${data.artists.join(', ')} — ${data.album || ''}` : undefined),
+                images: data.imageUrl ? [{ url: data.imageUrl, alt: data.title }] : undefined,
+            }
         }
     } catch {
         return {}
