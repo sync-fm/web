@@ -2,7 +2,7 @@
 import type { Metadata } from 'next'
 import { SongView } from '@/components/SongView'
 import { getThinBackgroundColorFromImageUrl } from '@/lib/serverColors'
-import { SyncFMSong } from 'syncfm.ts';
+import { SyncFMSong } from "syncfm.ts";
 import { headers } from 'next/headers';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';

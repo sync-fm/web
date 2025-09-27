@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SyncFM } from 'syncfm.ts';
+import { SyncFM } from "syncfm.ts";
 import syncfmconfig from "@/syncfm.config";
 
 const syncfm = new SyncFM(syncfmconfig);

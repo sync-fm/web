@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { ArtistView } from '@/components/ArtistView'
 import { getThinBackgroundColorFromImageUrl } from '@/lib/serverColors'
-import { SyncFMArtist } from 'syncfm.ts';
+import { SyncFMArtist } from "syncfm.ts";
 import { headers } from 'next/headers';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';

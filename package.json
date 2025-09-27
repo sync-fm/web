@@ -10,7 +10,9 @@
     "build": "next build",
     "start:ci": "next start",
     "start": "dotenvx run -- next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "paths:real": "sh ./scripts/use-real-paths.sh",
+    "paths:dev": "sh ./scripts/use-dev-paths.sh"
   },
   "engines": {
     "node": "20"
