@@ -27,7 +27,7 @@ function decodePathToFullUrl(path: string): string {
   return decoded
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const hostHeader = request.headers.get('host') || ''
   // remove port if present: e.g. "yt.localhost:3000" -> "yt.localhost"
   const hostname = hostHeader.split(':')[0]
@@ -68,7 +68,7 @@ export function middleware(request: NextRequest) {
 
     let detectedInputType: string | null | undefined;
     try {
-      detectedInputType = getSyncfm().getInputTypeFromUrl(fullExternalUrl) // handled above
+      detectedInputType = await getSyncfm().getInputTypeFromUrl(fullExternalUrl) // handled above
     } catch (err) {
       // If SyncFM isn't available (e.g. missing env vars), skip redirection.
       console.warn('middleware: could not detect input type due to SyncFM init failure', err)
@@ -87,7 +87,7 @@ function handleSubdomainRedirection(request: NextRequest, subdomain: string) {
   let desiredService: "applemusic" | "spotify" | "ytmusic" | "syncfm" | undefined;
   try {
     desiredService = getDesiredServiceFromSubdomain(subdomain)
-  } catch (err) {
+  } catch {
     desiredService = undefined
   }
   if (!desiredService) return NextResponse.next()

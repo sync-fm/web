@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Invalid URL format." }, { status: 400 });
         }
 
-        const inputType = syncfm.getInputTypeFromUrl(originalUrl);
+        const inputType = await syncfm.getInputTypeFromUrl(originalUrl);
         let convertedData;
         switch (inputType) {
             case 'song':
