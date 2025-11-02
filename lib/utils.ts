@@ -1,4 +1,4 @@
-
+import type { Metadata } from "next";
 import { clsx, type ClassValue } from "clsx"
 import type { ServiceName, SyncFMExternalIdMap } from "syncfm.ts"
 import { twMerge } from "tailwind-merge"
@@ -39,3 +39,68 @@ export const SERVICE_TO_EXTERNAL_KEY: Record<ServiceName, keyof SyncFMExternalId
   ytmusic: "YouTube",
   spotify: "Spotify",
 };
+
+interface createMetaOpts {
+  title: string;
+  description: string;
+  url: string;
+  image?: string;
+  baseUrl?: string;
+  type?: {
+    twitter: "summary" | "summary_large_image" | "app" | "player";
+    og: "website" | "article" | "book" | "profile" | "music.song" | "music.album" | "music.playlist" | "music.radio_station";
+  }
+}
+const createMetaDefaults: Partial<createMetaOpts> = {
+  baseUrl: "https://syncfm.dev",
+  type: {
+    twitter: "summary",
+    og: "article",
+  }
+}
+interface CombinedMetaOpts extends createMetaOpts {
+  baseUrl: string;
+  type: {
+    twitter: "summary" | "summary_large_image" | "app" | "player";
+    og: "website" | "article" | "book" | "profile" | "music.song" | "music.album" | "music.playlist" | "music.radio_station";
+  }
+}
+export const createMetadata = (meta: createMetaOpts): Metadata => {
+  const m = { ...createMetaDefaults, ...meta } as CombinedMetaOpts;
+  const outputMeta: Metadata = {
+    metadataBase: new URL(m.baseUrl),
+    title: m.title,
+    description:
+      m.description,
+    openGraph: {
+      title: m.title,
+      description:
+        m.description,
+      type: m.type.og,
+      url: m.url,
+    },
+    twitter: {
+      card: m.type.twitter,
+      title: m.title,
+      description:
+        m.description,
+    },
+  };
+  if (m.image) {
+    outputMeta.openGraph = {
+      ...outputMeta.openGraph,
+      images: [
+        {
+          url: m.image,
+          alt: m.title,
+        },
+      ],
+    };
+    outputMeta.twitter = {
+      ...outputMeta.twitter,
+      images: [m.image],
+    };
+  }
+
+  return outputMeta
+}
