@@ -5,8 +5,15 @@ import type {
     SyncFMPlaylist,
     SyncFMSong,
 } from "syncfm.ts";
-import type { ConversionWarningMap } from "/home/jay/projects/syncfm.ts/src/types/errors";
 import type { IconType } from "react-icons";
+export interface ServiceConversionWarning {
+    message: string;
+    timestamp: Date;
+}
+
+export interface ConversionWarningMap {
+    [service: string]: ServiceConversionWarning;
+}
 
 export type ComposerStatus = "idle" | "loading" | "success" | "error" | "warning";
 export type ComposerPreviewType = "Song" | "Album" | "Artist" | "Playlist";
