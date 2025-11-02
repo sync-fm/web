@@ -1,37 +1,26 @@
-FROM node:20-alpine AS builder
+FROM oven/bun:1.3 AS base
+WORKDIR /usr/src/app
 WORKDIR /app
 
-# Install build tools (required for some npm packages)
-RUN apk add --no-cache python3 make g++
+FROM base AS install
+RUN mkdir -p /temp/dev
+COPY package.json bun.lock /temp/dev/
+RUN cd /temp/dev && bun install
 
-# Copy package manifest(s) first to leverage Docker cache
-COPY package.json package-lock.json* ./
-COPY bun.lock* ./
+RUN mkdir -p /temp/prod
+COPY package.json bun.lock /temp/prod/
+RUN cd /temp/prod && bun install --production
 
-# Install all deps (including devDeps needed for build)
-RUN npm install
-
-# Copy source and build
+FROM base AS buntime
+COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
-RUN npm run build && npm prune --production
-
-# Runner stage
-FROM node:20-alpine AS runner
-WORKDIR /app
+RUN bun run build
 ENV NODE_ENV=production
 
-# Copy only what's needed to run
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
-
-EXPOSE 3000
-
+USER bun
+EXPOSE 3000/tcp
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:3000/ || exit 1
 
-USER node
+ENTRYPOINT [ "bun", "run", "start:ci" ]
 
-# Use the CI start script which runs `next start`
-CMD ["npm", "run", "start:ci"]
