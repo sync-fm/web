@@ -3,6 +3,7 @@ import { SongView } from "@/components/SongView";
 import { getThinBackgroundColorFromImageUrl } from "@/lib/serverColors";
 import type { SyncFMSong } from "syncfm.ts";
 import { headers } from "next/headers";
+import env from "@/lib/meow-env";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ export async function generateMetadata(props: {
 		const host = headersList.get("host") || "localhost:3000";
 		const protocol =
 			headersList.get("x-forwarded-proto") ||
-			(process.env.NODE_ENV === "production" ? "https" : "http");
+			(env.get("NODE_ENV") === "production" ? "https" : "http");
 		const baseUrl = `${protocol}://${host}`;
 
 		let data: SyncFMSong;
@@ -97,7 +98,7 @@ export default async function SongPage(props: {
 	const host = headersList.get("host") || "localhost:3000";
 	const protocol =
 		headersList.get("x-forwarded-proto") ||
-		(process.env.NODE_ENV === "production" ? "https" : "http");
+		(env.get("NODE_ENV") === "production" ? "https" : "http");
 	const baseUrl = `${protocol}://${host}`;
 
 	try {

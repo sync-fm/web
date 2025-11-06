@@ -5,7 +5,7 @@ import type { SyncFMAlbum } from "syncfm.ts";
 import { headers } from "next/headers";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
+import { env } from "@/lib/meow-env";
 export async function generateMetadata(props: {
 	params: Promise<{ searchParams: { url: string; syncId: string } }>;
 	searchParams: Promise<{ url: string; syncId: string }>;
@@ -24,7 +24,7 @@ export async function generateMetadata(props: {
 		const host = headersList.get("host") || "localhost:3000";
 		const protocol =
 			headersList.get("x-forwarded-proto") ||
-			(process.env.NODE_ENV === "production" ? "https" : "http");
+			(env.get("NODE_ENV") === "production" ? "https" : "http");
 		const baseUrl = `${protocol}://${host}`;
 
 		let data: SyncFMAlbum;
@@ -89,7 +89,7 @@ export default async function AlbumPage(props: {
 	const host = headersList.get("host") || "localhost:3000";
 	const protocol =
 		headersList.get("x-forwarded-proto") ||
-		(process.env.NODE_ENV === "production" ? "https" : "http");
+		(env.get("NODE_ENV") === "production" ? "https" : "http");
 	const baseUrl = `${protocol}://${host}`;
 
 	try {

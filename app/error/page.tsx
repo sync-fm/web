@@ -73,7 +73,7 @@ function ErrorPageContent() {
 	};
 
 	return (
-		<div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-950 via-slate-900 to-slate-950">
+		<div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-red-950 via-slate-900 to-slate-950">
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
@@ -178,7 +178,7 @@ export default function ErrorPage() {
 	return (
 		<Suspense
 			fallback={
-				<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-slate-900 to-slate-950">
+				<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-red-950 via-slate-900 to-slate-950">
 					<div className="text-white/60">Loading...</div>
 				</div>
 			}

@@ -1,10 +1,11 @@
-import { SyncFMConfig } from "syncfm.ts";
+import type { SyncFMConfig } from "syncfm.ts";
+import { env } from "@/lib/meow-env";
 
 const config: SyncFMConfig = {
-    SpotifyClientId: process.env.SPOTIFY_CLIENT_ID,
-    SpotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-    SupabaseUrl: process.env.SUPABASE_URL,
-    SupabaseKey: process.env.SUPABASE_KEY,
+    SpotifyClientId: env.get("SPOTIFY_CLIENT_ID"),
+    SpotifyClientSecret: env.get("SPOTIFY_CLIENT_SECRET"),
+    SupabaseUrl: env.get("SUPABASE_URL"),
+    SupabaseKey: env.get("SUPABASE_KEY"),
 };
 
 export default config;

@@ -75,7 +75,7 @@ export default function AlbumView({
 		async function getBlurHash(imageUrl: string) {
 			try {
 				const response = await fetch(
-					"/api/getBackgroundBlurHash?url=" + encodeURIComponent(imageUrl),
+					`/api/getBackgroundBlurHash?url=${encodeURIComponent(imageUrl)}`,
 				);
 				const data = await response.json();
 				if (data.hash) {
@@ -149,7 +149,7 @@ export default function AlbumView({
 		const seen = new Set<string>();
 		const uniqueList: typeof album.songs = [];
 
-		album.songs.forEach((song) => {
+		for (const song of album.songs) {
 			if (!seen.has(song.syncId)) {
 				uniqueList.push(song);
 				seen.add(song.syncId);
@@ -164,7 +164,7 @@ export default function AlbumView({
 					uniqueList[existingIndex] = song;
 				}
 			}
-		});
+		}
 
 		return uniqueList;
 	}, [album]);
@@ -172,6 +172,7 @@ export default function AlbumView({
 	const streamingUrlCacheRef = useRef<
 		Map<ServiceName, Promise<string> | string>
 	>(new Map());
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		streamingUrlCacheRef.current.clear();
 	}, [album?.syncId]);
@@ -258,7 +259,7 @@ export default function AlbumView({
 
 	if (error) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-slate-900 to-slate-950">
+			<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-red-950 via-slate-900 to-slate-950">
 				<div className="text-center p-8">
 					<h1 className="text-2xl font-bold text-white mb-4">
 						Error Loading Album
@@ -294,7 +295,7 @@ export default function AlbumView({
 						<motion.div
 							whileHover={{ scale: 1.05 }}
 							transition={{ duration: 0.3 }}
-							className="relative flex-shrink-0"
+							className="relative shrink-0"
 						>
 							<div className="relative h-48 w-48 mx-auto md:mx-0 overflow-hidden rounded-2xl shadow-2xl">
 								<img
@@ -305,7 +306,7 @@ export default function AlbumView({
 									alt={`${album.title} cover`}
 									className="h-full w-full object-cover"
 								/>
-								<div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+								<div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
 							</div>
 						</motion.div>
 
@@ -396,7 +397,7 @@ export default function AlbumView({
 									transition={{ delay: index * 0.02, duration: 0.3 }}
 									className="group flex items-center gap-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 p-3 transition-all duration-300 hover:bg-white/20 hover:border-white/30"
 								>
-									<div className="flex-shrink-0 w-8 text-center">
+									<div className="shrink-0 w-8 text-center">
 										<span
 											className="text-sm text-white/70 group-hover:hidden"
 											style={{
@@ -429,7 +430,7 @@ export default function AlbumView({
 										</p>
 									</div>
 									<div
-										className="flex-shrink-0 text-white/70 text-sm"
+										className="shrink-0 text-white/70 text-sm"
 										style={{
 											textShadow:
 												"0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.9)",

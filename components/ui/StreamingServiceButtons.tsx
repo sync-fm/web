@@ -132,7 +132,7 @@ export function StreamingServiceButtons({
 							y: isDisabled ? 0 : -2,
 						}}
 						whileTap={{ scale: isDisabled ? 1 : 0.95 }}
-						className={`group relative flex flex-1 basis-[160px] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm transition-all duration-300 ${
+						className={`group relative flex flex-1 basis-40 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm transition-all duration-300 ${
 							isDisabled ? "opacity-60 cursor-default pointer-events-none" : ""
 						}`}
 						style={{

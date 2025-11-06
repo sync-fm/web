@@ -2,18 +2,18 @@
 
 import posthog from "posthog-js";
 import type { CaptureOptions, Properties } from "posthog-js";
+import env from "@/lib/meow-env";
 
-const API_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const API_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "/ingest";
-const UI_HOST = process.env.NEXT_PUBLIC_POSTHOG_UI_HOST;
-const ENABLE_IN_DEV = process.env.NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV === "true";
+const API_KEY = env.get("NEXT_PUBLIC_POSTHOG_KEY");
+const API_HOST = env.get("NEXT_PUBLIC_POSTHOG_API_HOST") ?? "/ingest";
+const ENABLE_IN_DEV = env.get("NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV") === "true";
 
 let initialized = false;
 
 function shouldInit() {
     if (!API_KEY) return false;
     if (typeof window === "undefined") return false;
-    if (process.env.NODE_ENV === "development" && !ENABLE_IN_DEV) return false;
+    if (env.get("NODE_ENV") === "development" && !ENABLE_IN_DEV) return false;
     return true;
 }
 
@@ -26,13 +26,12 @@ export function initPosthogClient() {
 
     posthog.init(key, {
         api_host: API_HOST,
-        ui_host: UI_HOST,
         person_profiles: "identified_only",
         autocapture: true,
         capture_pageview: false,
         capture_pageleave: true,
         capture_performance: true,
-        debug: process.env.NODE_ENV === "development",
+        debug: env.get("NODE_ENV") === "development",
     });
 
     initialized = true;

@@ -1,9 +1,10 @@
 import type { NextRequest } from "next/server";
+import env from "@/lib/meow-env";
 
 const HTTPS = "https";
 
 const getEnvOrigin = (): string | null => {
-    const candidate = process.env.SYNCFM_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? null;
+    const candidate = env.get("NEXT_PUBLIC_APP_URL") ?? null;
     if (!candidate) return null;
     try {
         return new URL(candidate).origin;
@@ -33,7 +34,7 @@ export const getCanonicalOrigin = (request: NextRequest): string => {
     const forwardedHost = pickForwardedHost(request.headers.get("x-forwarded-host"));
     const forwardedProto = normalizeProtocol(
         request.headers.get("x-forwarded-proto"),
-        process.env.NODE_ENV === "production" ? HTTPS : request.nextUrl.protocol.replace(":", ""),
+        env.get("NODE_ENV") === "production" ? HTTPS : request.nextUrl.protocol.replace(":", ""),
     );
 
     if (forwardedHost) {
@@ -42,7 +43,7 @@ export const getCanonicalOrigin = (request: NextRequest): string => {
 
     const host = request.headers.get("host");
     if (host) {
-        const protocol = process.env.NODE_ENV === "production" ? HTTPS : forwardedProto;
+        const protocol = env.get("NODE_ENV") === "production" ? HTTPS : forwardedProto;
         return `${protocol}://${host}`;
     }
 

@@ -1,17 +1,14 @@
 import { PostHog } from "posthog-node";
+import env from "@/lib/meow-env";
 
-const API_KEY = process.env.POSTHOG_API_KEY;
-const HOST = process.env.POSTHOG_HOST ?? "https://eu.i.posthog.com";
-const DISABLED = process.env.POSTHOG_DISABLED === "true";
-const FLUSH_AT = process.env.POSTHOG_FLUSH_AT ? Number(process.env.POSTHOG_FLUSH_AT) : undefined;
-const FLUSH_INTERVAL = process.env.POSTHOG_FLUSH_INTERVAL_MS
-    ? Number(process.env.POSTHOG_FLUSH_INTERVAL_MS)
-    : undefined;
+const API_KEY = env.get("NEXT_PUBLIC_POSTHOG_KEY");
+const HOST = env.get("NEXT_PUBLIC_POSTHOG_API_HOST") ?? "/ingest";
+const DISABLED = env.get("POSTHOG_DISABLED") === "true";
 
 let client: PostHog | null = null;
 
 function isEdgeRuntime() {
-    return typeof process !== "undefined" && process.env.NEXT_RUNTIME === "edge";
+    return typeof process !== "undefined" && env.get("NEXT_RUNTIME") === "edge";
 }
 
 function createClient(): PostHog | undefined {
@@ -22,12 +19,6 @@ function createClient(): PostHog | undefined {
     const options: Record<string, unknown> = {
         host: HOST,
     };
-    if (typeof FLUSH_AT === "number" && !Number.isNaN(FLUSH_AT)) {
-        options.flushAt = FLUSH_AT;
-    }
-    if (typeof FLUSH_INTERVAL === "number" && !Number.isNaN(FLUSH_INTERVAL)) {
-        options.flushInterval = FLUSH_INTERVAL;
-    }
 
     client = new PostHog(API_KEY, options);
     return client;
@@ -42,7 +33,7 @@ type EventProperties = Record<string, unknown> | undefined;
 function buildProperties(additional?: EventProperties) {
     return {
         environment:
-            process.env.NEXT_PUBLIC_RUNTIME_ENV ?? process.env.NODE_ENV ?? "unknown",
+            env.get("NEXT_PUBLIC_RUNTIME_ENV") ?? env.get("NODE_ENV") ?? "unknown",
         ...additional,
     };
 }

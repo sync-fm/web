@@ -75,7 +75,7 @@ export function SongView({
 		async function getBlurHash(imageUrl: string) {
 			try {
 				const response = await fetch(
-					"/api/getBackgroundBlurHash?url=" + encodeURIComponent(imageUrl),
+					`/api/getBackgroundBlurHash?url=${encodeURIComponent(imageUrl)}`,
 				);
 				const data = await response.json();
 				if (data.hash) {
@@ -144,6 +144,7 @@ export function SongView({
 	const streamingUrlCacheRef = useRef<
 		Map<ServiceName, Promise<string> | string>
 	>(new Map());
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		streamingUrlCacheRef.current.clear();
 	}, [song?.syncId]);
@@ -230,7 +231,7 @@ export function SongView({
 
 	if (error) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-slate-900 to-slate-950">
+			<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-red-950 via-slate-900 to-slate-950">
 				<div className="text-center p-8">
 					<h1 className="text-2xl font-bold text-white mb-4">
 						Error Loading Song
@@ -273,7 +274,7 @@ export function SongView({
 								<Play className="w-16 h-16 text-muted-foreground" />
 							</div>
 						)}
-						<div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/20 rounded-2xl" />
+						<div className="absolute inset-0 bg-linear-to-t from-black/30 via-transparent to-white/20 rounded-2xl" />
 						<div className="absolute inset-0 backdrop-blur-[0.5px] bg-white/5 rounded-2xl" />
 					</div>
 				</motion.div>
@@ -284,18 +285,18 @@ export function SongView({
 					transition={{ delay: 0.4, duration: 0.6 }}
 					className="text-center mb-6"
 				>
-					<h1 className="text-2xl font-bold text-white mb-2 leading-tight drop-shadow-lg [text-shadow:_0_2px_8px_rgb(0_0_0_/_80%)]">
+					<h1 className="text-2xl font-bold text-white mb-2 leading-tight drop-shadow-lg [text-shadow:0_2px_8px_rgb(0_0_0/80%)]">
 						{song.title}
 					</h1>
-					<p className="text-lg text-white/90 mb-1 drop-shadow-md [text-shadow:_0_1px_4px_rgb(0_0_0_/_60%)]">
+					<p className="text-lg text-white/90 mb-1 drop-shadow-md [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
 						{song.artists.join(", ")}
 					</p>
 					{song.album && (
-						<p className="text-sm text-white/80 mb-2 drop-shadow-md [text-shadow:_0_1px_4px_rgb(0_0_0_/_60%)]">
+						<p className="text-sm text-white/80 mb-2 drop-shadow-md [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
 							{song.album}
 						</p>
 					)}
-					<p className="text-sm text-white/70 drop-shadow-md [text-shadow:_0_1px_4px_rgb(0_0_0_/_60%)]">
+					<p className="text-sm text-white/70 drop-shadow-md [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
 						{formatDuration(song.duration)}
 					</p>
 				</motion.div>

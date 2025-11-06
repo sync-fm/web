@@ -128,7 +128,7 @@ export function ArtistView({
 		async function getBlurHash(imageUrl: string) {
 			try {
 				const response = await fetch(
-					"/api/getBackgroundBlurHash?url=" + encodeURIComponent(imageUrl),
+					`/api/getBackgroundBlurHash?url=${encodeURIComponent(imageUrl)}`,
 				);
 				const data = await response.json();
 				if (data.hash) setBlurHash(data.hash);
@@ -191,6 +191,7 @@ export function ArtistView({
 	const streamingUrlCacheRef = useRef<
 		Map<ServiceName, Promise<string> | string>
 	>(new Map());
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		streamingUrlCacheRef.current.clear();
 	}, [artist?.syncId]);
@@ -268,7 +269,7 @@ export function ArtistView({
 
 	if (error) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-slate-900 to-slate-950">
+			<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-red-950 via-slate-900 to-slate-950">
 				<div className="text-center p-8">
 					<h1 className="text-2xl font-bold text-white mb-4">
 						Error Loading Artist
@@ -293,6 +294,7 @@ export function ArtistView({
 			thinBackgroundColor={thinBackgroundColor || "#000"}
 		>
 			{/* hidden audio element for playback */}
+			{/* biome-ignore lint/a11y/useMediaCaption: <explanation> */}
 			<audio
 				ref={audioRef}
 				onEnded={() => setIsPlaying(false)}
@@ -353,7 +355,7 @@ export function ArtistView({
 						>
 							{artist.genre.map((genre, index) => (
 								<span
-									key={index}
+									key={`genre-${index}-${genre}`}
 									className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-medium text-white/90 backdrop-blur-sm"
 									style={{ textShadow: "0 2px 8px rgba(0, 0, 0, 0.6)" }}
 								>
@@ -400,7 +402,7 @@ export function ArtistView({
 
 							return (
 								<motion.div
-									key={index}
+									key={`track-${index}-${track.title}`}
 									initial={{ opacity: 0, x: -20 }}
 									animate={{ opacity: 1, x: 0 }}
 									transition={{ delay: index * 0.02, duration: 0.3 }}
@@ -412,7 +414,7 @@ export function ArtistView({
 									}`}
 								>
 									{/* Track Thumbnail */}
-									<div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-white/10">
+									<div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/10">
 										{track.thumbnailUrl ? (
 											<img
 												src={track.thumbnailUrl || "/placeholder.svg"}

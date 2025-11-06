@@ -7,12 +7,13 @@
   "author": "xwxfox",
   "scripts": {
     "dev": "dotenvx run -- next dev",
-    "build": "next build",
-    "start:ci": "next start",
-    "start": "dotenvx run -- next start",
+    "build": "bun run validate && next build",
+    "start:ci": "bun run validate && next start",
+    "start": "dotenvx run -- bun run start:ci",
     "lint": "eslint",
     "paths:real": "sh ./scripts/use-real-paths.sh",
-    "paths:dev": "sh ./scripts/use-dev-paths.sh"
+    "paths:dev": "sh ./scripts/use-dev-paths.sh",
+    "validate": "bun run scripts/validate-env.ts"
   },
   "engines": {
     "node": "20"

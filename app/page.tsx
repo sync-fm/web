@@ -348,12 +348,12 @@ export default function LandingV2Page() {
 								<motion.button
 									type="button"
 									onClick={openComposer}
-									className="group hidden items-center gap-1.5 rounded-full bg-gradient-to-br from-orange-500 to-amber-400 px-5 py-2.5 text-base font-semibold leading-tight text-slate-950 shadow-[0_18px_50px_rgba(255,120,0,0.35)] transition-transform hover:translate-y-[-2px] md:inline-flex"
+									className="group hidden items-center gap-1.5 rounded-full bg-linear-to-br from-orange-500 to-amber-400 px-5 py-2.5 text-base font-semibold leading-tight text-slate-950 shadow-[0_18px_50px_rgba(255,120,0,0.35)] transition-transform hover:-translate-y-0.5 md:inline-flex"
 									variants={HERO_CTA_ITEM_VARIANTS}
 								>
 									<span className="flex items-center gap-1.5 text-base">
 										<span className="leading-none">Share a</span>
-										<span className="relative flex h-[1.4rem] min-w-[3.5rem] items-center overflow-hidden">
+										<span className="relative flex h-[1.4rem] min-w-14 items-center overflow-hidden">
 											<AnimatePresence mode="wait">
 												<motion.span
 													key={currentShareType}
@@ -391,7 +391,7 @@ export default function LandingV2Page() {
 
 					<motion.section
 						id="how-it-works"
-						className="rounded-[32px] border border-white/10 bg-white/5 p-8 shadow-[0_25px_80px_rgba(10,10,45,0.55)] backdrop-blur-2xl"
+						className="rounded-4xl border border-white/10 bg-white/5 p-8 shadow-[0_25px_80px_rgba(10,10,45,0.55)] backdrop-blur-2xl"
 						initial={{ opacity: 0, y: 32 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.6, ease: "easeOut" }}
@@ -421,10 +421,10 @@ export default function LandingV2Page() {
 							{howItWorksSteps.map((step, index) => (
 								<motion.div
 									key={step.title}
-									className="rounded-3xl border border-white/12 bg-gradient-to-br from-white/10 via-white/6 to-white/14 p-6 backdrop-blur-xl"
+									className="rounded-3xl border border-white/12 bg-linear-to-br from-white/10 via-white/6 to-white/14 p-6 backdrop-blur-xl"
 									variants={HOW_IT_WORKS_CARD_VARIANTS}
 								>
-									<span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 text-sm font-semibold text-slate-950 shadow-[0_10px_28px_rgba(255,120,0,0.32)]">
+									<span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-orange-500 to-amber-400 text-sm font-semibold text-slate-950 shadow-[0_10px_28px_rgba(255,120,0,0.32)]">
 										{index + 1}
 									</span>
 									<p className="mt-4 text-sm font-semibold uppercase tracking-[0.25em] text-orange-200/75">
@@ -440,7 +440,7 @@ export default function LandingV2Page() {
 
 					<section
 						id="what-you-get"
-						className="rounded-[32px] border border-white/10 bg-white/5 p-8 shadow-[0_25px_80px_rgba(10,10,45,0.55)] backdrop-blur-2xl"
+						className="rounded-4xl border border-white/10 bg-white/5 p-8 shadow-[0_25px_80px_rgba(10,10,45,0.55)] backdrop-blur-2xl"
 					>
 						<div className="mb-10 space-y-3">
 							<p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-white/50">
@@ -460,7 +460,7 @@ export default function LandingV2Page() {
 							{featureHighlights.map((feature) => (
 								<motion.div
 									key={feature.title}
-									className="flex flex-col gap-4 rounded-3xl border border-white/12 bg-gradient-to-br from-white/10 via-white/6 to-white/14 p-6 backdrop-blur-xl"
+									className="flex flex-col gap-4 rounded-3xl border border-white/12 bg-linear-to-br from-white/10 via-white/6 to-white/14 p-6 backdrop-blur-xl"
 									initial={{ opacity: 0, y: 18 }}
 									whileInView={{ opacity: 1, y: 0 }}
 									viewport={{ once: true }}
@@ -477,7 +477,7 @@ export default function LandingV2Page() {
 									<ul className="space-y-3 text-sm text-white/70">
 										{feature.points.map((point) => (
 											<li key={point} className="flex gap-3">
-												<span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gradient-to-br from-orange-400 to-amber-400" />
+												<span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-linear-to-br from-orange-400 to-amber-400" />
 												<span>{point}</span>
 											</li>
 										))}
@@ -508,7 +508,7 @@ export default function LandingV2Page() {
 
 					<section
 						id="why-syncfm"
-						className="rounded-[32px] border border-white/10 bg-gradient-to-br from-orange-500/12 via-orange-500/6 to-black/60 p-8 backdrop-blur-2xl"
+						className="rounded-4xl border border-white/10 bg-linear-to-br from-orange-500/12 via-orange-500/6 to-black/60 p-8 backdrop-blur-2xl"
 					>
 						<div className="mb-8 space-y-3">
 							<p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-white/55">
@@ -547,7 +547,7 @@ export default function LandingV2Page() {
 
 					<section
 						id="roadmap"
-						className="rounded-[32px] border border-white/10 bg-white/5 p-8 backdrop-blur-2xl"
+						className="rounded-4xl border border-white/10 bg-white/5 p-8 backdrop-blur-2xl"
 					>
 						<div className="flex flex-col gap-10 lg:flex-row lg:items-center">
 							<div className="flex-1 space-y-6">
@@ -585,7 +585,7 @@ export default function LandingV2Page() {
 											{item.era}
 										</p>
 										<p
-											className={`mt-2 inline-flex items-center rounded-full bg-gradient-to-r ${item.accent} px-3 py-1 text-xs font-medium text-black/85`}
+											className={`mt-2 inline-flex items-center rounded-full bg-linear-to-r ${item.accent} px-3 py-1 text-xs font-medium text-black/85`}
 										>
 											{item.title}
 										</p>

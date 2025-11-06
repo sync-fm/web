@@ -4,15 +4,15 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
-
+import env from "@/lib/meow-env";
 import {
 	initPosthogClient,
 	registerPosthogGlobals,
 	unregisterPosthogGlobals,
 } from "@/lib/analytics/client";
 
-const release = process.env.NEXT_PUBLIC_APP_VERSION;
-const environment = process.env.NEXT_PUBLIC_RUNTIME_ENV ?? process.env.NODE_ENV;
+const release = env.get("NEXT_PUBLIC_APP_VERSION");
+const environment = env.get("NEXT_PUBLIC_RUNTIME_ENV") ?? env.get("NODE_ENV");
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
