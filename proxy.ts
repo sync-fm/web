@@ -27,7 +27,7 @@ function decodePathToFullUrl(path: string): string {
   return decoded
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const hostHeader = request.headers.get('host') || ''
   // remove port if present: e.g. "yt.localhost:3000" -> "yt.localhost"
   const hostname = hostHeader.split(':')[0]

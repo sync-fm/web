@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
     serverExternalPackages: ["syncfm.ts"],
+    reactCompiler: true,
     poweredByHeader: false,
     async rewrites() {
         return [

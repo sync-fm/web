@@ -4,12 +4,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, Calendar, Clock } from "lucide-react";
-import type {
-	ServiceName,
-	SyncFMArtist,
-	SyncFMArtistTrack,
-} from "syncfm.ts";
-import { normalizeConversionOutcome, type ProviderStatus } from "@/lib/normalizeConversionOutcome";
+import type { ServiceName, SyncFMArtist, SyncFMArtistTrack } from "syncfm.ts";
+import {
+	normalizeConversionOutcome,
+	type ProviderStatus,
+} from "@/lib/normalizeConversionOutcome";
 import { SiSpotify } from "react-icons/si";
 import { LoadingUI } from "./ui/LoadingUI";
 import { useDominantColors } from "@/lib/useDominantColors";
@@ -42,17 +41,25 @@ export function ArtistView({
 	const [isPlaying, setIsPlaying] = useState(false);
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 
-	const normalizedOutcome = useMemo(() => (artist ? normalizeConversionOutcome(artist) : undefined), [artist]);
+	const normalizedOutcome = useMemo(
+		() => (artist ? normalizeConversionOutcome(artist) : undefined),
+		[artist],
+	);
 
 	const serviceStatus = useMemo(() => {
 		if (!normalizedOutcome) return undefined;
-		return normalizedOutcome.statuses.reduce((acc, status) => {
-			acc[status.service] = status;
-			return acc;
-		}, {} as Record<ServiceName, ProviderStatus>);
+		return normalizedOutcome.statuses.reduce(
+			(acc, status) => {
+				acc[status.service] = status;
+				return acc;
+			},
+			{} as Record<ServiceName, ProviderStatus>,
+		);
 	}, [normalizedOutcome]);
 
-	const hasUnavailableServices = normalizedOutcome ? normalizedOutcome.missingServices.length > 0 : false;
+	const hasUnavailableServices = normalizedOutcome
+		? normalizedOutcome.missingServices.length > 0
+		: false;
 
 	const getShareFallback = useCallback(
 		(service: ServiceName): string | null => {
@@ -358,7 +365,8 @@ export function ArtistView({
 
 					{hasUnavailableServices && (
 						<p className="mb-4 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-200 backdrop-blur">
-							Some streaming providers are temporarily unavailable. Try another service or check back later.
+							Some streaming providers are temporarily unavailable. Try another
+							service or check back later.
 						</p>
 					)}
 					<StreamingServiceButtons

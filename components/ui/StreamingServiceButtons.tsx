@@ -111,9 +111,14 @@ export function StreamingServiceButtons({
 			{streamingServices.map(({ name, service, color, Logo }) => {
 				const url = urls[service];
 				const status = serviceStatus?.[service];
-				const hasStatusWarning = Boolean(status && (!status.available || status.warning));
+				const hasStatusWarning = Boolean(
+					status && (!status.available || status.warning),
+				);
 				const hasError = errors[service] || hasStatusWarning;
-				const warningMessage = status?.reason || status?.warning || (errors[service] ? "May not work correctly" : "");
+				const warningMessage =
+					status?.reason ||
+					status?.warning ||
+					(errors[service] ? "May not work correctly" : "");
 				const isDisabled = !url || loading;
 
 				return (

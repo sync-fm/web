@@ -4,11 +4,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Clock, Music } from "lucide-react";
-import type {
-	ServiceName,
-	SyncFMAlbum,
-} from "syncfm.ts";
-import { normalizeConversionOutcome, type ProviderStatus } from "@/lib/normalizeConversionOutcome";
+import type { ServiceName, SyncFMAlbum } from "syncfm.ts";
+import {
+	normalizeConversionOutcome,
+	type ProviderStatus,
+} from "@/lib/normalizeConversionOutcome";
 import { LoadingUI } from "./ui/LoadingUI";
 import { useDominantColors } from "@/lib/useDominantColors";
 import { formatDuration, formatTotalDuration } from "@/lib/utils";
@@ -37,17 +37,25 @@ export default function AlbumView({
 	);
 	const [blurHash, setBlurHash] = useState<string | undefined>();
 
-	const normalizedOutcome = useMemo(() => (album ? normalizeConversionOutcome(album) : undefined), [album]);
+	const normalizedOutcome = useMemo(
+		() => (album ? normalizeConversionOutcome(album) : undefined),
+		[album],
+	);
 
 	const serviceStatus = useMemo(() => {
 		if (!normalizedOutcome) return undefined;
-		return normalizedOutcome.statuses.reduce((acc, status) => {
-			acc[status.service] = status;
-			return acc;
-		}, {} as Record<ServiceName, ProviderStatus>);
+		return normalizedOutcome.statuses.reduce(
+			(acc, status) => {
+				acc[status.service] = status;
+				return acc;
+			},
+			{} as Record<ServiceName, ProviderStatus>,
+		);
 	}, [normalizedOutcome]);
 
-	const hasUnavailableServices = normalizedOutcome ? normalizedOutcome.missingServices.length > 0 : false;
+	const hasUnavailableServices = normalizedOutcome
+		? normalizedOutcome.missingServices.length > 0
+		: false;
 
 	const getShareFallback = useCallback(
 		(service: ServiceName): string | null => {
@@ -189,17 +197,20 @@ export default function AlbumView({
 
 			const promise = (async (): Promise<string> => {
 				try {
-					const createURLRes: { url?: string | null } = await fetch("/api/createUrl", {
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
+					const createURLRes: { url?: string | null } = await fetch(
+						"/api/createUrl",
+						{
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({
+								service,
+								input: album,
+								type: "album",
+							}),
 						},
-						body: JSON.stringify({
-							service,
-							input: album,
-							type: "album",
-						}),
-					}).then((res) => res.json());
+					).then((res) => res.json());
 					const resolvedUrl = createURLRes?.url ?? null;
 					if (resolvedUrl) {
 						streamingUrlCacheRef.current.set(service, resolvedUrl);
@@ -349,7 +360,8 @@ export default function AlbumView({
 							</motion.div>
 							{hasUnavailableServices && (
 								<p className="mb-4 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-200 backdrop-blur">
-									Some streaming providers are temporarily unavailable. Try another service or check back later.
+									Some streaming providers are temporarily unavailable. Try
+									another service or check back later.
 								</p>
 							)}
 							<StreamingServiceButtons
