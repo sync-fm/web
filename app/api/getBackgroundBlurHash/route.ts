@@ -1,15 +1,35 @@
 import { NextResponse } from "next/server";
 import * as blurhash from 'blurhash'
 import sharp from 'sharp';
+import { captureServerEvent, captureServerException } from "@/lib/analytics/server";
+import { durationSince, extractUrlMetadata } from "@/lib/analytics/utils";
 
 export async function GET(req: Request) {
+    const start = Date.now();
+    const respond = (status: number, body: unknown, analytics: Record<string, unknown> = {}) => {
+        captureServerEvent("api.getBackgroundBlurHash.response", {
+            route: "api/getBackgroundBlurHash",
+            method: "GET",
+            status,
+            success: status < 400,
+            duration_ms: durationSince(start),
+            ...analytics,
+        });
+        return NextResponse.json(body, { status });
+    };
     const { searchParams } = new URL(req.url)
     const url = searchParams.get('url')
+    const urlMetadata = extractUrlMetadata(url);
+    captureServerEvent("api.getBackgroundBlurHash.request", {
+        route: "api/getBackgroundBlurHash",
+        method: "GET",
+        ...urlMetadata,
+    });
 
-    if (!url) return NextResponse.json({
+    if (!url) return respond(400, {
         message: 'Required fields is empty'
     }, {
-        status: 400
+        reason: 'missing_url'
     })
 
     try {
@@ -32,14 +52,23 @@ export async function GET(req: Request) {
             4
         )
 
-        return NextResponse.json({
+        return respond(200, {
             hash
+        }, {
+            stage: 'success',
+            hash_length: hash.length,
+            ...urlMetadata,
         })
     } catch (err) {
-        return NextResponse.json({
+        captureServerException(err, {
+            route: "api/getBackgroundBlurHash",
+            ...urlMetadata,
+        });
+        return respond(404, {
             error: err
         }, {
-            status: 404
+            stage: 'processing_error',
+            ...urlMetadata,
         })
     }
 }

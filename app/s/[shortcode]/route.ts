@@ -14,6 +14,7 @@ const prefixMapReverse: Record<string, "song" | "artist" | "album"> = {
 export async function GET(request: NextRequest, { params }: { params: Promise<{ shortcode: string }> }) {
     try {
         const shortcode = (await params).shortcode
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const prefixMap: Record<"song" | "artist" | "album", string> = {
             song: "so",
             artist: "ar",

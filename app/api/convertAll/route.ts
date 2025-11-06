@@ -3,17 +3,44 @@ import { NextResponse } from 'next/server';
 import { SyncFM } from "syncfm.ts";
 import syncfmconfig from "@/syncfm.config";
 import type { SyncFMSong, SyncFMAlbum, SyncFMArtist } from "syncfm.ts";
+import { captureServerEvent, captureServerException } from "@/lib/analytics/server";
+import { durationSince, extractUrlMetadata } from "@/lib/analytics/utils";
 
 const syncfm = new SyncFM(syncfmconfig);
 
 export async function GET(request: NextRequest) {
+    const start = Date.now();
+    const respond = (status: number, body: unknown, analytics: Record<string, unknown> = {}) => {
+        captureServerEvent("api.convertAll.response", {
+            route: "api/convertAll",
+            method: "GET",
+            status,
+            success: status < 400,
+            duration_ms: durationSince(start),
+            ...analytics,
+        });
+        return NextResponse.json(body, { status });
+    };
+
     try {
         const originalUrl = request.nextUrl.searchParams.get('url')
+        const urlMetadata = extractUrlMetadata(originalUrl);
+        captureServerEvent("api.convertAll.request", {
+            route: "api/convertAll",
+            method: "GET",
+            ...urlMetadata,
+        });
         if (!originalUrl) {
-            return NextResponse.json({ error: 'Missing URL parameter' }, { status: 400 })
+            return respond(400, { error: 'Missing URL parameter' }, {
+                reason: 'missing_url',
+                ...urlMetadata,
+            })
         }
         if (!originalUrl.startsWith('http')) {
-            return NextResponse.json({ error: "Invalid URL format." }, { status: 400 });
+            return respond(400, { error: "Invalid URL format." }, {
+                reason: 'invalid_url',
+                ...urlMetadata,
+            });
         }
 
         let inputType: 'song' | 'album' | 'artist' | 'playlist';
@@ -21,10 +48,18 @@ export async function GET(request: NextRequest) {
             inputType = await syncfm.getInputTypeFromUrl(originalUrl);
         } catch (error) {
             console.error("Failed to get input type:", error);
-            return NextResponse.json({
+            captureServerException(error, {
+                route: "api/convertAll",
+                stage: "detect_input_type",
+                ...urlMetadata,
+            });
+            return respond(400, {
                 error: "Failed to determine input type",
                 message: error instanceof Error ? error.message : "Unknown error"
-            }, { status: 400 });
+            }, {
+                stage: 'detect_input_type',
+                ...urlMetadata,
+            });
         }
 
         let convertedData: SyncFMSong | SyncFMAlbum | SyncFMArtist | null = null;
@@ -40,31 +75,59 @@ export async function GET(request: NextRequest) {
                     convertedData = await syncfm.convertArtist(await syncfm.getInputArtistInfo(originalUrl), "spotify");
                     break;
                 default:
-                    return NextResponse.json({ error: "Invalid input type." }, { status: 400 });
+                    return respond(400, { error: "Invalid input type." }, {
+                        reason: 'unsupported_input_type',
+                        input_type: inputType,
+                        ...urlMetadata,
+                    });
             }
         } catch (error) {
             console.error("Conversion error:", error);
-            return NextResponse.json({
+            captureServerException(error, {
+                route: "api/convertAll",
+                stage: "convert_content",
+                input_type: inputType,
+                ...urlMetadata,
+            });
+            return respond(500, {
                 error: "Conversion failed",
                 message: error instanceof Error ? error.message : "Unknown error",
                 inputType
-            }, { status: 500 });
+            }, {
+                stage: 'convert_content',
+                input_type: inputType,
+                ...urlMetadata,
+            });
         }
 
         if (!convertedData) {
-            return NextResponse.json({
+            return respond(404, {
                 error: "Conversion failed - no data returned",
                 inputType
-            }, { status: 404 });
+            }, {
+                stage: 'no_converted_data',
+                input_type: inputType,
+                ...urlMetadata,
+            });
         }
 
-        return NextResponse.json(convertedData);
+        return respond(200, convertedData, {
+            stage: 'success',
+            input_type: inputType,
+            ...urlMetadata,
+        });
 
     } catch (error) {
         console.error("Error processing request:", error);
-        return NextResponse.json({
+        captureServerException(error, {
+            route: "api/convertAll",
+            stage: "unexpected",
+        });
+        return respond(500, {
             error: "Internal server error",
             message: error instanceof Error ? error.message : "Unknown error"
-        }, { status: 500 });
+        }, {
+            stage: 'unexpected',
+        });
     }
 }

@@ -3,60 +3,111 @@ import { NextResponse } from 'next/server';
 import { SyncFM } from "syncfm.ts";
 import type { SyncFMSong, SyncFMAlbum, SyncFMArtist } from "syncfm.ts";
 import syncfmconfig from "@/syncfm.config";
+import { captureServerEvent, captureServerException } from "@/lib/analytics/server";
+import { durationSince, extractUrlMetadata } from "@/lib/analytics/utils";
 
 const syncfm = new SyncFM(syncfmconfig);
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ service: string }> }) {
-  try {
-    let rawService = (await params).service
-    const originalUrl = request.nextUrl.searchParams.get('url')
-    const syncId = request.nextUrl.searchParams.get('syncId')
-    const noRedirect = rawService === 'syncfm';
+  const resolvedParams = await params;
+  let rawService = resolvedParams.service;
+  const requestedService = rawService;
+  const originalUrl = request.nextUrl.searchParams.get('url');
+  const syncId = request.nextUrl.searchParams.get('syncId');
+  const noRedirect = rawService === 'syncfm';
+  const start = Date.now();
+  const urlMetadata = extractUrlMetadata(originalUrl);
 
+  captureServerEvent("api.handle.request", {
+    route: "api/handle/[service]",
+    method: "GET",
+    requested_service: requestedService,
+    no_redirect: noRedirect,
+    has_syncId: Boolean(syncId),
+    ...urlMetadata,
+  });
+
+  const recordResponse = (status: number, analytics: Record<string, unknown> = {}) => {
+    captureServerEvent("api.handle.response", {
+      route: "api/handle/[service]",
+      method: "GET",
+      requested_service: requestedService,
+      resolved_service: rawService,
+      no_redirect: noRedirect,
+      has_syncId: Boolean(syncId),
+      status,
+      success: status >= 200 && status < 400,
+      duration_ms: durationSince(start),
+      ...urlMetadata,
+      ...analytics,
+    });
+  };
+
+  const respondJson = (status: number, body: unknown, analytics: Record<string, unknown> = {}) => {
+    recordResponse(status, { response_type: "json", ...analytics });
+    return NextResponse.json(body, { status });
+  };
+
+  const respondRedirect = (target: string | URL, analytics: Record<string, unknown> = {}) => {
+    const targetValue = typeof target === "string" ? target : target.toString();
+    let redirectHost: string | undefined;
+    try {
+      redirectHost = new URL(targetValue, request.url).hostname;
+    } catch {
+      redirectHost = undefined;
+    }
+
+    recordResponse(302, {
+      response_type: "redirect",
+      redirect_host: redirectHost,
+      ...analytics,
+    });
+
+    return typeof target === "string" ? NextResponse.redirect(target) : NextResponse.redirect(target);
+  };
+
+  try {
     if (!originalUrl && !syncId) {
+      const analytics = { reason: "missing_parameters" };
       if (!noRedirect) {
         const errorUrl = new URL('/error', request.url);
         errorUrl.searchParams.set('errorType', 'fetch');
         errorUrl.searchParams.set('entityType', 'song');
         errorUrl.searchParams.set('message', 'Missing URL or syncId parameter');
-        return NextResponse.redirect(errorUrl);
+        return respondRedirect(errorUrl, analytics);
       }
-      return NextResponse.json({ error: 'Missing URL or syncId parameter' }, { status: 400 })
+      return respondJson(400, { error: 'Missing URL or syncId parameter' }, analytics);
     }
 
     // Handle syncId-based lookup
     if (syncId) {
       if (!rawService) {
+        const analytics = { reason: "invalid_service", stage: "syncId" };
         if (!noRedirect) {
           const errorUrl = new URL('/error', request.url);
           errorUrl.searchParams.set('errorType', 'fetch');
           errorUrl.searchParams.set('entityType', 'song');
           errorUrl.searchParams.set('message', 'Invalid service');
-          return NextResponse.redirect(errorUrl);
+          return respondRedirect(errorUrl, analytics);
         }
-        return NextResponse.json({ error: "Invalid service." }, { status: 400 });
+        return respondJson(400, { error: "Invalid service." }, analytics);
       }
 
-      if (noRedirect) { rawService = 'spotify' }
+      if (noRedirect) { rawService = 'spotify'; }
       const service = rawService as "applemusic" | "spotify" | "ytmusic";
 
-      // We need to determine the type from the database
-      // Try each type until we find it
       let convertedData: SyncFMSong | SyncFMAlbum | SyncFMArtist | null = null;
       let inputType: 'song' | 'album' | 'artist' | 'playlist' = 'song';
 
       try {
-        // Try song first
         convertedData = await syncfm.getSongBySyncId(syncId);
         if (convertedData) {
           inputType = 'song';
         } else {
-          // Try album
           convertedData = await syncfm.getAlbumBySyncId(syncId);
           if (convertedData) {
             inputType = 'album';
           } else {
-            // Try artist
             convertedData = await syncfm.getArtistBySyncId(syncId);
             if (convertedData) {
               inputType = 'artist';
@@ -65,18 +116,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
 
         if (!convertedData) {
+          const analytics = {
+            reason: "not_found",
+            stage: "syncId",
+            syncId,
+            service,
+          };
           if (!noRedirect) {
             const errorUrl = new URL('/error', request.url);
             errorUrl.searchParams.set('errorType', 'fetch');
             errorUrl.searchParams.set('entityType', 'song');
             errorUrl.searchParams.set('syncId', syncId);
             errorUrl.searchParams.set('message', `No content found with syncId: ${syncId}`);
-            return NextResponse.redirect(errorUrl);
+            return respondRedirect(errorUrl, analytics);
           }
-          return NextResponse.json({ error: `No content found with syncId: ${syncId}` }, { status: 404 });
+          return respondJson(404, { error: `No content found with syncId: ${syncId}` }, analytics);
         }
 
-        // Now create the URL for the target service
         let convertedUrl: string | null = null;
         if (!noRedirect) {
           switch (inputType) {
@@ -92,23 +148,55 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           }
 
           if (!convertedUrl) {
+            const analytics = {
+              reason: "missing_converted_url",
+              stage: "syncId",
+              syncId,
+              service,
+              inputType,
+            };
             const errorUrl = new URL('/error', request.url);
             errorUrl.searchParams.set('errorType', 'redirect');
             errorUrl.searchParams.set('entityType', inputType);
             errorUrl.searchParams.set('syncId', syncId);
             errorUrl.searchParams.set('service', service);
             errorUrl.searchParams.set('message', `Failed to create ${service} URL`);
-            return NextResponse.redirect(errorUrl);
+            return respondRedirect(errorUrl, analytics);
           }
 
-          return NextResponse.redirect(convertedUrl);
+          return respondRedirect(convertedUrl, {
+            stage: "syncId",
+            syncId,
+            service,
+            inputType,
+            outcome: "redirect",
+          });
         }
 
-        return NextResponse.json(convertedData);
+        return respondJson(200, convertedData, {
+          stage: "syncId",
+          syncId,
+          service,
+          inputType,
+          outcome: "data",
+        });
 
       } catch (error) {
         console.error("Error fetching by syncId:", error);
+        captureServerException(error, {
+          route: "api/handle/[service]",
+          stage: "syncId",
+          syncId,
+          service,
+        });
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+        const analytics = {
+          stage: "syncId",
+          syncId,
+          service,
+          reason: "exception",
+        };
 
         if (!noRedirect) {
           const errorUrl = new URL('/error', request.url);
@@ -116,38 +204,44 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           errorUrl.searchParams.set('entityType', 'song');
           errorUrl.searchParams.set('syncId', syncId);
           errorUrl.searchParams.set('message', `Failed to fetch content: ${errorMessage}`);
-          return NextResponse.redirect(errorUrl);
+          return respondRedirect(errorUrl, analytics);
         }
 
-        return NextResponse.json({
+        return respondJson(500, {
           error: "Failed to fetch content",
           message: errorMessage
-        }, { status: 500 });
+        }, analytics);
       }
     }
 
     // Handle URL-based conversion (original logic)
     if (!originalUrl || !originalUrl.startsWith('http')) {
+      const analytics = {
+        reason: "invalid_url",
+        stage: "url",
+        originalUrl,
+      };
       if (!noRedirect) {
         const errorUrl = new URL('/error', request.url);
         errorUrl.searchParams.set('errorType', 'fetch');
         errorUrl.searchParams.set('entityType', 'song');
         if (originalUrl) errorUrl.searchParams.set('url', originalUrl);
         errorUrl.searchParams.set('message', 'Invalid URL format');
-        return NextResponse.redirect(errorUrl);
+        return respondRedirect(errorUrl, analytics);
       }
-      return NextResponse.json({ error: "Invalid URL format." }, { status: 400 });
+      return respondJson(400, { error: "Invalid URL format." }, analytics);
     }
 
     if (!rawService) {
+      const analytics = { reason: "invalid_service", stage: "url" };
       if (!noRedirect) {
         const errorUrl = new URL('/error', request.url);
         errorUrl.searchParams.set('errorType', 'fetch');
         errorUrl.searchParams.set('entityType', 'song');
         errorUrl.searchParams.set('message', 'Invalid service');
-        return NextResponse.redirect(errorUrl);
+        return respondRedirect(errorUrl, analytics);
       }
-      return NextResponse.json({ error: "Invalid subdomain." }, { status: 400 });
+      return respondJson(400, { error: "Invalid subdomain." }, analytics);
     }
 
     let inputType: 'song' | 'album' | 'artist' | 'playlist';
@@ -155,27 +249,37 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       inputType = await syncfm.getInputTypeFromUrl(originalUrl);
     } catch (error) {
       console.error("Failed to get input type:", error);
+      captureServerException(error, {
+        route: "api/handle/[service]",
+        stage: "detect_input_type",
+        requested_service: requestedService,
+      });
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-      // Redirect to error page for user-facing services
+      const analytics = {
+        reason: "detect_input_type_failed",
+        stage: "detect_input_type",
+        originalUrl,
+      };
+
       if (!noRedirect) {
         const errorUrl = new URL('/error', request.url);
         errorUrl.searchParams.set('errorType', 'fetch');
         errorUrl.searchParams.set('entityType', 'song');
         errorUrl.searchParams.set('url', originalUrl);
         errorUrl.searchParams.set('message', `Failed to determine content type: ${errorMessage}`);
-        return NextResponse.redirect(errorUrl);
+        return respondRedirect(errorUrl, analytics);
       }
 
-      return NextResponse.json({
+      return respondJson(400, {
         error: "Failed to determine input type",
         message: errorMessage
-      }, { status: 400 });
+      }, analytics);
     }
 
     let convertedData: SyncFMSong | SyncFMAlbum | SyncFMArtist | null = null;
     let convertedUrl: string | null = null;
-    if (noRedirect) { rawService = 'spotify' }
+    if (noRedirect) { rawService = 'spotify'; }
     const service = rawService as "applemusic" | "spotify" | "ytmusic";
 
     try {
@@ -198,7 +302,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             convertedUrl = await syncfm.createArtistURL(convertedData, service, convertedData.syncId);
           }
           break;
-        default:
+        default: {
+          const analytics = {
+            reason: "unsupported_input_type",
+            stage: "conversion",
+            inputType,
+            service,
+          };
           if (!noRedirect) {
             const errorUrl = new URL('/error', request.url);
             errorUrl.searchParams.set('errorType', 'conversion');
@@ -206,15 +316,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             errorUrl.searchParams.set('url', originalUrl);
             errorUrl.searchParams.set('service', service);
             errorUrl.searchParams.set('message', 'Unsupported content type');
-            return NextResponse.redirect(errorUrl);
+            return respondRedirect(errorUrl, analytics);
           }
-          return NextResponse.json({ error: "Invalid input type." }, { status: 400 });
+          return respondJson(400, { error: "Invalid input type." }, analytics);
+        }
       }
     } catch (error) {
       console.error("Conversion error:", error);
+      captureServerException(error, {
+        route: "api/handle/[service]",
+        stage: "conversion",
+        inputType,
+        service,
+      });
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-      // Redirect to error page for user-facing services
+      const analytics = {
+        reason: "conversion_failed",
+        stage: "conversion",
+        inputType,
+        service,
+      };
+
       if (!noRedirect) {
         const errorUrl = new URL('/error', request.url);
         errorUrl.searchParams.set('errorType', 'conversion');
@@ -222,18 +345,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         errorUrl.searchParams.set('url', originalUrl);
         errorUrl.searchParams.set('service', service);
         errorUrl.searchParams.set('message', `Conversion failed: ${errorMessage}`);
-        return NextResponse.redirect(errorUrl);
+        return respondRedirect(errorUrl, analytics);
       }
 
-      return NextResponse.json({
+      return respondJson(500, {
         error: "Conversion failed",
         message: errorMessage,
         inputType
-      }, { status: 500 });
+      }, analytics);
     }
 
     if (!convertedData) {
-      // Redirect to error page for user-facing services
+      const analytics = {
+        reason: "conversion_returned_null",
+        stage: "conversion",
+        inputType,
+        service,
+      };
       if (!noRedirect) {
         const errorUrl = new URL('/error', request.url);
         errorUrl.searchParams.set('errorType', 'conversion');
@@ -241,51 +369,68 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         errorUrl.searchParams.set('url', originalUrl);
         errorUrl.searchParams.set('service', service);
         errorUrl.searchParams.set('message', `${inputType.charAt(0).toUpperCase() + inputType.slice(1)} not found or unavailable on ${service}`);
-        return NextResponse.redirect(errorUrl);
+        return respondRedirect(errorUrl, analytics);
       }
 
-      return NextResponse.json({
+      return respondJson(404, {
         error: "Conversion failed - no data returned",
         inputType
-      }, { status: 404 });
+      }, analytics);
     }
 
     if (!noRedirect) {
       if (!convertedUrl) {
-        // Failed to create URL - redirect to error page
+        const analytics = {
+          reason: "missing_converted_url",
+          stage: "conversion",
+          inputType,
+          service,
+        };
         const errorUrl = new URL('/error', request.url);
         errorUrl.searchParams.set('errorType', 'redirect');
         errorUrl.searchParams.set('entityType', inputType);
         errorUrl.searchParams.set('url', originalUrl);
         errorUrl.searchParams.set('service', service);
         errorUrl.searchParams.set('message', `Failed to create ${service} URL`);
-        return NextResponse.redirect(errorUrl);
+        return respondRedirect(errorUrl, analytics);
       }
-      return NextResponse.redirect(convertedUrl);
+      return respondRedirect(convertedUrl, {
+        stage: "conversion",
+        inputType,
+        service,
+        outcome: "redirect",
+      });
     }
 
-    return NextResponse.json(convertedData);
+    return respondJson(200, convertedData, {
+      stage: "conversion",
+      inputType,
+      service,
+      outcome: "data",
+    });
 
   } catch (error) {
     console.error("Error processing request:", error);
-    const originalUrl = request.nextUrl.searchParams.get('url') || '';
-    const rawService = (await (await params)).service;
+    captureServerException(error, {
+      route: "api/handle/[service]",
+      stage: "unexpected",
+      requested_service: requestedService,
+    });
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-    // Redirect to error page for user-facing services (not syncfm)
-    if (rawService !== 'syncfm') {
+    if (!noRedirect) {
       const errorUrl = new URL('/error', request.url);
       errorUrl.searchParams.set('errorType', 'unknown');
       errorUrl.searchParams.set('entityType', 'song');
-      errorUrl.searchParams.set('url', originalUrl);
-      errorUrl.searchParams.set('service', rawService);
+      if (originalUrl) errorUrl.searchParams.set('url', originalUrl);
+      errorUrl.searchParams.set('service', requestedService);
       errorUrl.searchParams.set('message', `Internal server error: ${errorMessage}`);
-      return NextResponse.redirect(errorUrl);
+      return respondRedirect(errorUrl, { stage: "unexpected", reason: "exception" });
     }
 
-    return NextResponse.json({
+    return respondJson(500, {
       error: "Internal server error",
       message: errorMessage
-    }, { status: 500 });
+    }, { stage: "unexpected", reason: "exception" });
   }
 }

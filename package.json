@@ -27,6 +27,8 @@
     "jimp": "^1.6.0",
     "lucide-react": "^0.541.0",
     "next": "15.5.0",
+    "posthog-js": "^1.288.1",
+    "posthog-node": "^5.11.2",
     "react": "19.1.0",
     "react-blurhash": "^0.3.0",
     "react-dom": "19.1.0",

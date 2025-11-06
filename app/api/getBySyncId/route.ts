@@ -3,20 +3,48 @@ import { NextResponse } from 'next/server';
 import { SyncFM } from "syncfm.ts";
 import syncfmconfig from "@/syncfm.config";
 import type { SyncFMSong, SyncFMAlbum, SyncFMArtist } from "syncfm.ts";
+import { captureServerEvent, captureServerException } from "@/lib/analytics/server";
+import { durationSince } from "@/lib/analytics/utils";
 
 const syncfm = new SyncFM(syncfmconfig);
 
 export async function GET(request: NextRequest) {
+    const start = Date.now();
+    const respond = (status: number, body: unknown, analytics: Record<string, unknown> = {}) => {
+        captureServerEvent("api.getBySyncId.response", {
+            route: "api/getBySyncId",
+            method: "GET",
+            status,
+            success: status < 400,
+            duration_ms: durationSince(start),
+            ...analytics,
+        });
+        return NextResponse.json(body, { status });
+    };
+
     try {
         const syncId = request.nextUrl.searchParams.get('syncId');
         const type = request.nextUrl.searchParams.get('type') as 'song' | 'album' | 'artist' | null;
 
+        captureServerEvent("api.getBySyncId.request", {
+            route: "api/getBySyncId",
+            method: "GET",
+            syncId: syncId ?? undefined,
+            type,
+        });
+
         if (!syncId) {
-            return NextResponse.json({ error: 'Missing syncId parameter' }, { status: 400 });
+            return respond(400, { error: 'Missing syncId parameter' }, {
+                reason: 'missing_syncId',
+                type,
+            });
         }
 
         if (!type || !['song', 'album', 'artist'].includes(type)) {
-            return NextResponse.json({ error: 'Missing or invalid type parameter. Must be: song, album, or artist' }, { status: 400 });
+            return respond(400, { error: 'Missing or invalid type parameter. Must be: song, album, or artist' }, {
+                reason: 'invalid_type',
+                syncId,
+            });
         }
 
         let data: SyncFMSong | SyncFMAlbum | SyncFMArtist | null = null;
@@ -35,28 +63,52 @@ export async function GET(request: NextRequest) {
             }
         } catch (error) {
             console.error("Database fetch error:", error);
-            return NextResponse.json({
+            captureServerException(error, {
+                route: "api/getBySyncId",
+                stage: "fetch",
+                type,
+                syncId,
+            });
+            return respond(500, {
                 error: "Failed to fetch data from database",
                 message: error instanceof Error ? error.message : "Unknown error",
                 type
-            }, { status: 500 });
+            }, {
+                stage: 'fetch',
+                type,
+                syncId,
+            });
         }
 
         if (!data) {
-            return NextResponse.json({
+            return respond(404, {
                 error: `No ${type} found with syncId: ${syncId}`,
                 type,
                 syncId
-            }, { status: 404 });
+            }, {
+                stage: 'not_found',
+                type,
+                syncId,
+            });
         }
 
-        return NextResponse.json(data);
+        return respond(200, data, {
+            stage: 'success',
+            type,
+            syncId,
+        });
 
     } catch (error) {
         console.error("Error processing request:", error);
-        return NextResponse.json({
+        captureServerException(error, {
+            route: "api/getBySyncId",
+            stage: 'unexpected',
+        });
+        return respond(500, {
             error: "Internal server error",
             message: error instanceof Error ? error.message : "Unknown error"
-        }, { status: 500 });
+        }, {
+            stage: 'unexpected',
+        });
     }
 }
