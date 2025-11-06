@@ -4,6 +4,7 @@ import { getSyncfm } from "@/lib/syncfm";
 import type { SyncFMSong, ServiceName, SyncFMAlbum, SyncFMArtist, SyncFMPlaylist } from "syncfm.ts";
 import { captureServerEvent, captureServerException } from "@/lib/analytics/server";
 import { durationSince } from "@/lib/analytics/utils";
+import { normalizeConversionOutcome } from "@/lib/normalizeConversionOutcome";
 
 export type MusicEntityType = "song" | "album" | "artist" | "playlist";
 
@@ -50,6 +51,9 @@ export async function POST(req: NextRequest) {
         // Extract syncId if available
         const syncId = 'syncId' in input ? input.syncId : undefined;
 
+        const normalized = normalizeConversionOutcome(input, [service]);
+        const providerStatus = normalized.statuses[0];
+
         let url: string | null = null;
 
         switch (type) {
@@ -72,15 +76,21 @@ export async function POST(req: NextRequest) {
         }
 
         if (!url) {
-            return respond(404, {
-                error: "Failed to create URL",
-                service,
-                type
+            return respond(200, {
+                url: null,
+                warning: providerStatus && !providerStatus.available ? {
+                    service: providerStatus.service,
+                    reason: providerStatus.reason,
+                    retryable: providerStatus.retryable,
+                } : undefined,
             }, {
-                stage: "create_url",
+                stage: "partial",
                 service,
                 type,
                 has_syncId: Boolean(syncId),
+                available_services: normalized.availableServices,
+                missing_services: normalized.missingServices,
+                has_partial_success: normalized.hasPartialSuccess,
             });
         }
 
@@ -89,6 +99,9 @@ export async function POST(req: NextRequest) {
             service,
             type,
             has_syncId: Boolean(syncId),
+            available_services: normalized.availableServices,
+            missing_services: normalized.missingServices,
+            has_partial_success: normalized.hasPartialSuccess,
         });
     } catch (error) {
         console.error("Error in createUrl:", error);

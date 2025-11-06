@@ -8,6 +8,7 @@ import type {
 	ServiceName,
 	SyncFMAlbum,
 } from "syncfm.ts";
+import { normalizeConversionOutcome, type ProviderStatus } from "@/lib/normalizeConversionOutcome";
 import { LoadingUI } from "./ui/LoadingUI";
 import { useDominantColors } from "@/lib/useDominantColors";
 import { formatDuration, formatTotalDuration } from "@/lib/utils";
@@ -35,6 +36,32 @@ export default function AlbumView({
 		!true,
 	);
 	const [blurHash, setBlurHash] = useState<string | undefined>();
+
+	const normalizedOutcome = useMemo(() => (album ? normalizeConversionOutcome(album) : undefined), [album]);
+
+	const serviceStatus = useMemo(() => {
+		if (!normalizedOutcome) return undefined;
+		return normalizedOutcome.statuses.reduce((acc, status) => {
+			acc[status.service] = status;
+			return acc;
+		}, {} as Record<ServiceName, ProviderStatus>);
+	}, [normalizedOutcome]);
+
+	const hasUnavailableServices = normalizedOutcome ? normalizedOutcome.missingServices.length > 0 : false;
+
+	const getShareFallback = useCallback(
+		(service: ServiceName): string | null => {
+			if (!album) return null;
+
+			const params = new URLSearchParams({
+				syncId: album.syncId,
+				service,
+				partial: "true",
+			});
+			return `/album?${params.toString()}`;
+		},
+		[album],
+	);
 
 	useEffect(() => {
 		async function getBlurHash(imageUrl: string) {
@@ -144,40 +171,47 @@ export default function AlbumView({
 	const getStreamingUrl = useCallback(
 		async (service: ServiceName): Promise<string> => {
 			if (!album) {
-				return Promise.reject(new Error("Album not loaded"));
+				throw new Error("Album not loaded");
 			}
 
 			const cache = streamingUrlCacheRef.current;
 			const cached = cache.get(service);
 			if (cached) {
-				// Already resolved string
-				if (typeof cached === "string") {
-					return cached;
-				}
-				// Promise in flight
-				return cached;
+				return typeof cached === "string" ? cached : cached;
+			}
+
+			const status = serviceStatus?.[service];
+			const shareFallback = getShareFallback(service);
+			if (status && !status.available && shareFallback) {
+				cache.set(service, shareFallback);
+				return shareFallback;
 			}
 
 			const promise = (async (): Promise<string> => {
 				try {
-					const createURLRes: { url?: string } = await fetch("/api/createUrl", {
+					const createURLRes: { url?: string | null } = await fetch("/api/createUrl", {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
 						},
 						body: JSON.stringify({
-							service: service,
+							service,
 							input: album,
 							type: "album",
 						}),
 					}).then((res) => res.json());
-					if (createURLRes && createURLRes.url) {
-						streamingUrlCacheRef.current.set(service, createURLRes.url);
-						return createURLRes.url;
+					const resolvedUrl = createURLRes?.url ?? null;
+					if (resolvedUrl) {
+						streamingUrlCacheRef.current.set(service, resolvedUrl);
+						return resolvedUrl;
 					}
-				} catch (e) {
-					console.error("createUrl failed:", e);
-					// fall through to default handler below
+				} catch (error) {
+					console.error("createUrl failed:", error);
+				}
+
+				if (shareFallback) {
+					streamingUrlCacheRef.current.set(service, shareFallback);
+					return shareFallback;
 				}
 
 				if (url) {
@@ -198,7 +232,7 @@ export default function AlbumView({
 			cache.set(service, promise);
 			return promise;
 		},
-		[album, url, syncId],
+		[album, url, syncId, serviceStatus, getShareFallback],
 	);
 
 	if (
@@ -313,7 +347,15 @@ export default function AlbumView({
 									</div>
 								)}
 							</motion.div>
-							<StreamingServiceButtons createUrl={getStreamingUrl} />
+							{hasUnavailableServices && (
+								<p className="mb-4 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-200 backdrop-blur">
+									Some streaming providers are temporarily unavailable. Try another service or check back later.
+								</p>
+							)}
+							<StreamingServiceButtons
+								createUrl={getStreamingUrl}
+								serviceStatus={serviceStatus}
+							/>
 						</div>
 					</div>
 

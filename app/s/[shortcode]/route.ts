@@ -1,109 +1,127 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { resolveCanonicalUrl } from "@/lib/canonical-url";
 import { SyncFM } from "syncfm.ts";
 import type { SyncFMSong, SyncFMAlbum, SyncFMArtist } from "syncfm.ts";
 import syncfmconfig from "@/syncfm.config";
 
 const syncfm = new SyncFM(syncfmconfig);
 
-const prefixMapReverse: Record<string, "song" | "artist" | "album"> = {
+type EntityType = "song" | "artist" | "album";
+
+const prefixMapReverse: Record<string, EntityType> = {
     so: "song",
     ar: "artist",
     al: "album",
 };
-export async function GET(request: NextRequest, { params }: { params: Promise<{ shortcode: string }> }) {
-    try {
-        const shortcode = (await params).shortcode
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const prefixMap: Record<"song" | "artist" | "album", string> = {
-            song: "so",
-            artist: "ar",
-            album: "al",
-        } as const;
-        let inputType: keyof typeof prefixMap
 
-        try {
-            if (!shortcode) {
-                throw new Error('No shortcode!');
+export async function GET(request: NextRequest, { params }: { params: Promise<{ shortcode: string }> }) {
+    let shortcode: string | undefined;
+    try {
+        const resolvedParams = await params;
+        shortcode = resolvedParams.shortcode;
+
+        const buildErrorUrl = (options: {
+            errorType: string;
+            entityType: string;
+            message: string;
+            code?: string;
+        }): URL => {
+            const errorUrl = resolveCanonicalUrl(request, "/error");
+            errorUrl.searchParams.set("errorType", options.errorType);
+            errorUrl.searchParams.set("entityType", options.entityType);
+            errorUrl.searchParams.set("message", options.message);
+            if (options.code) {
+                errorUrl.searchParams.set("code", options.code);
             }
-            inputType = prefixMapReverse[shortcode.slice(0, 2) as keyof typeof prefixMap];
+            return errorUrl;
+        };
+
+        if (!shortcode) {
+            const errorUrl = buildErrorUrl({
+                errorType: "resolve",
+                entityType: "shortcode",
+                message: "No shortcode provided.",
+            });
+            return NextResponse.redirect(errorUrl);
+        }
+
+        let inputType: EntityType;
+        try {
+            const prefix = shortcode.slice(0, 2);
+            const resolvedType = prefixMapReverse[prefix];
+            if (!resolvedType) {
+                throw new Error(`Unsupported shortcode prefix: ${prefix || "unknown"}`);
+            }
+            inputType = resolvedType;
         } catch (error) {
             console.error("Failed to get input type:", error);
             const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-            const errorUrl = new URL('/error', request.url);
-            errorUrl.searchParams.set('errorType', 'resolve');
-            errorUrl.searchParams.set('entityType', 'shortcode');
-            errorUrl.searchParams.set('message', `Failed to resolve shortcode type: ${errorMessage}`);
+            const errorUrl = buildErrorUrl({
+                errorType: "resolve",
+                entityType: "shortcode",
+                message: `Failed to resolve shortcode type: ${errorMessage}`,
+                code: shortcode,
+            });
             return NextResponse.redirect(errorUrl);
-
-
         }
-        let dataFromShortcode: SyncFMSong | SyncFMAlbum | SyncFMArtist | null = null;
-        try {
-            dataFromShortcode = await syncfm.getInputInfoFromShortcode<SyncFMSong | SyncFMAlbum | SyncFMArtist>(shortcode);
 
+        let dataFromShortcode: SyncFMSong | SyncFMAlbum | SyncFMArtist;
+        try {
+            dataFromShortcode = await syncfm.getInputInfoFromShortcode<
+                SyncFMSong | SyncFMAlbum | SyncFMArtist
+            >(shortcode);
         } catch (error) {
             console.error("Error fetching data from shortcode:", error);
             const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-            const errorUrl = new URL('/error', request.url);
-            errorUrl.searchParams.set('errorType', 'resolve');
-            errorUrl.searchParams.set('entityType', inputType);
-            errorUrl.searchParams.set('code', shortcode);
-            errorUrl.searchParams.set('message', `Failed to fetch data from shortcode: ${errorMessage}`);
+            const errorUrl = buildErrorUrl({
+                errorType: "resolve",
+                entityType: inputType,
+                message: `Failed to fetch data from shortcode: ${errorMessage}`,
+                code: shortcode,
+            });
             return NextResponse.redirect(errorUrl);
         }
 
-        let convertedData: SyncFMSong | SyncFMAlbum | SyncFMArtist | null = null;
-        let redirectUrl: URL;
-        const host = request.headers.get("host") || "localhost:3000";
-        const protocol =
-            request.headers.get("x-forwarded-proto") ||
-            (process.env.NODE_ENV === "production" ? "https" : "http");
-        const baseUrl = `${protocol}://${host}`;
+        let convertedData: SyncFMSong | SyncFMAlbum | SyncFMArtist;
         try {
-            convertedData = await syncfm.unifiedConvert(dataFromShortcode, 'spotify', inputType);
-            redirectUrl = new URL(`${baseUrl}/${inputType}`)
-            redirectUrl.searchParams.set("syncId", convertedData.syncId);
+            convertedData = await syncfm.unifiedConvert(dataFromShortcode, "spotify", inputType);
         } catch (error) {
             console.error("Conversion error:", error);
             const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-            const errorUrl = new URL('/error', request.url);
-            errorUrl.searchParams.set('errorType', 'conversion');
-            errorUrl.searchParams.set('entityType', inputType);
-            errorUrl.searchParams.set('message', `Conversion failed: ${errorMessage}`);
+            const errorUrl = buildErrorUrl({
+                errorType: "conversion",
+                entityType: inputType,
+                message: `Conversion failed: ${errorMessage}`,
+                code: shortcode,
+            });
             return NextResponse.redirect(errorUrl);
         }
 
         if (!convertedData) {
-
-            const errorUrl = new URL('/error', request.url);
-            errorUrl.searchParams.set('errorType', 'conversion');
-            errorUrl.searchParams.set('entityType', inputType);
-            errorUrl.searchParams.set('code', shortcode);
-            errorUrl.searchParams.set('message', "No converted data returned");
+            const errorUrl = buildErrorUrl({
+                errorType: "conversion",
+                entityType: inputType,
+                message: "No converted data returned",
+                code: shortcode,
+            });
             return NextResponse.redirect(errorUrl);
         }
 
-
-        // successful 
+        const redirectUrl = resolveCanonicalUrl(request, `/${inputType}`);
+        redirectUrl.searchParams.set("syncId", convertedData.syncId);
         return NextResponse.redirect(redirectUrl);
-
     } catch (error) {
         console.error("Error processing request:", error);
-        const originalUrl = request.nextUrl.searchParams.get('url') || '';
-        const shortcode = (await (await params)).shortcode;
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-        // Redirect to error page for user-facing services (not syncfm)
-        const errorUrl = new URL('/error', request.url);
-        errorUrl.searchParams.set('errorType', 'unknown');
-        errorUrl.searchParams.set('entityType', 'song');
-        errorUrl.searchParams.set('url', originalUrl);
-        errorUrl.searchParams.set('code', shortcode);
-        errorUrl.searchParams.set('message', `Internal server error: ${errorMessage}`);
+        const errorUrl = resolveCanonicalUrl(request, "/error");
+        errorUrl.searchParams.set("errorType", "unknown");
+        errorUrl.searchParams.set("entityType", "song");
+        errorUrl.searchParams.set("url", request.nextUrl.searchParams.get("url") || "");
+        if (shortcode) {
+            errorUrl.searchParams.set("code", shortcode);
+        }
+        errorUrl.searchParams.set("message", `Internal server error: ${errorMessage}`);
         return NextResponse.redirect(errorUrl);
     }
 }

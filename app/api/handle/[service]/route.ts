@@ -5,6 +5,8 @@ import type { SyncFMSong, SyncFMAlbum, SyncFMArtist } from "syncfm.ts";
 import syncfmconfig from "@/syncfm.config";
 import { captureServerEvent, captureServerException } from "@/lib/analytics/server";
 import { durationSince, extractUrlMetadata } from "@/lib/analytics/utils";
+import { normalizeConversionOutcome } from "@/lib/normalizeConversionOutcome";
+import { resolveCanonicalUrl } from "@/lib/canonical-url";
 
 const syncfm = new SyncFM(syncfmconfig);
 
@@ -49,21 +51,37 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   };
 
   const respondRedirect = (target: string | URL, analytics: Record<string, unknown> = {}) => {
-    const targetValue = typeof target === "string" ? target : target.toString();
-    let redirectHost: string | undefined;
-    try {
-      redirectHost = new URL(targetValue, request.url).hostname;
-    } catch {
-      redirectHost = undefined;
-    }
+    const resolvedUrl = resolveCanonicalUrl(request, target);
 
     recordResponse(302, {
       response_type: "redirect",
-      redirect_host: redirectHost,
+      redirect_host: resolvedUrl.hostname,
       ...analytics,
     });
 
-    return typeof target === "string" ? NextResponse.redirect(target) : NextResponse.redirect(target);
+    return NextResponse.redirect(resolvedUrl);
+  };
+
+  const buildShareRedirectPath = (
+    entity: SyncFMSong | SyncFMAlbum | SyncFMArtist,
+    entityType: 'song' | 'album' | 'artist' | 'playlist',
+    fallbackService: string,
+  ): string => {
+    const params = new URLSearchParams();
+    params.set('syncId', entity.syncId);
+    params.set('partial', 'true');
+    params.set('service', fallbackService);
+
+    switch (entityType) {
+      case 'album':
+        return `/album?${params.toString()}`;
+      case 'artist':
+        return `/artist?${params.toString()}`;
+      case 'playlist':
+        return `/playlist?${params.toString()}`;
+      default:
+        return `/song?${params.toString()}`;
+    }
   };
 
   try {
@@ -133,6 +151,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           return respondJson(404, { error: `No content found with syncId: ${syncId}` }, analytics);
         }
 
+        const normalized = normalizeConversionOutcome(convertedData);
+
         let convertedUrl: string | null = null;
         if (!noRedirect) {
           switch (inputType) {
@@ -147,29 +167,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               break;
           }
 
-          if (!convertedUrl) {
-            const analytics = {
-              reason: "missing_converted_url",
-              stage: "syncId",
-              syncId,
-              service,
-              inputType,
-            };
-            const errorUrl = new URL('/error', request.url);
-            errorUrl.searchParams.set('errorType', 'redirect');
-            errorUrl.searchParams.set('entityType', inputType);
-            errorUrl.searchParams.set('syncId', syncId);
-            errorUrl.searchParams.set('service', service);
-            errorUrl.searchParams.set('message', `Failed to create ${service} URL`);
-            return respondRedirect(errorUrl, analytics);
-          }
-
-          return respondRedirect(convertedUrl, {
+          const analyticsBase = {
             stage: "syncId",
             syncId,
             service,
             inputType,
-            outcome: "redirect",
+            available_services: normalized.availableServices,
+            missing_services: normalized.missingServices,
+            has_partial_success: normalized.hasPartialSuccess,
+          };
+
+          if (convertedUrl) {
+            return respondRedirect(convertedUrl, {
+              ...analyticsBase,
+              outcome: "redirect",
+            });
+          }
+
+          const shareTarget = buildShareRedirectPath(convertedData, inputType, service);
+          return respondRedirect(shareTarget, {
+            ...analyticsBase,
+            outcome: "redirect_share",
+            reason: "missing_converted_url",
           });
         }
 
@@ -179,6 +198,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           service,
           inputType,
           outcome: "data",
+          available_services: normalized.availableServices,
+          missing_services: normalized.missingServices,
+          has_partial_success: normalized.hasPartialSuccess,
         });
 
       } catch (error) {
@@ -378,27 +400,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }, analytics);
     }
 
+    const normalized = normalizeConversionOutcome(convertedData);
+
     if (!noRedirect) {
-      if (!convertedUrl) {
-        const analytics = {
-          reason: "missing_converted_url",
-          stage: "conversion",
-          inputType,
-          service,
-        };
-        const errorUrl = new URL('/error', request.url);
-        errorUrl.searchParams.set('errorType', 'redirect');
-        errorUrl.searchParams.set('entityType', inputType);
-        errorUrl.searchParams.set('url', originalUrl);
-        errorUrl.searchParams.set('service', service);
-        errorUrl.searchParams.set('message', `Failed to create ${service} URL`);
-        return respondRedirect(errorUrl, analytics);
-      }
-      return respondRedirect(convertedUrl, {
+      const analyticsBase = {
         stage: "conversion",
         inputType,
         service,
-        outcome: "redirect",
+        available_services: normalized.availableServices,
+        missing_services: normalized.missingServices,
+        has_partial_success: normalized.hasPartialSuccess,
+      };
+
+      if (convertedUrl) {
+        return respondRedirect(convertedUrl, {
+          ...analyticsBase,
+          outcome: "redirect",
+        });
+      }
+
+      const shareTarget = buildShareRedirectPath(convertedData, inputType, service);
+      return respondRedirect(shareTarget, {
+        ...analyticsBase,
+        outcome: "redirect_share",
+        reason: "missing_converted_url",
       });
     }
 
@@ -407,6 +432,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       inputType,
       service,
       outcome: "data",
+      available_services: normalized.availableServices,
+      missing_services: normalized.missingServices,
+      has_partial_success: normalized.hasPartialSuccess,
     });
 
   } catch (error) {

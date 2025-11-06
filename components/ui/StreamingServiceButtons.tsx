@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { SiApplemusic, SiSpotify, SiYoutubemusic } from "react-icons/si";
 import { AlertTriangle } from "lucide-react";
 import type { ServiceName } from "syncfm.ts";
+import type { ProviderStatus } from "@/lib/normalizeConversionOutcome";
 import { useEffect, useState } from "react";
 
 interface StreamingService {
@@ -39,10 +40,12 @@ const streamingServices: StreamingService[] = [
 
 interface StreamingServiceButtonsProps {
 	createUrl: (service: ServiceName) => Promise<string>;
+	serviceStatus?: Record<ServiceName, ProviderStatus>;
 }
 
 export function StreamingServiceButtons({
 	createUrl,
+	serviceStatus,
 }: StreamingServiceButtonsProps) {
 	const [urls, setUrls] = useState<Record<ServiceName, string | null>>({
 		spotify: null,
@@ -107,7 +110,10 @@ export function StreamingServiceButtons({
 		>
 			{streamingServices.map(({ name, service, color, Logo }) => {
 				const url = urls[service];
-				const hasError = errors[service];
+				const status = serviceStatus?.[service];
+				const hasStatusWarning = Boolean(status && (!status.available || status.warning));
+				const hasError = errors[service] || hasStatusWarning;
+				const warningMessage = status?.reason || status?.warning || (errors[service] ? "May not work correctly" : "");
 				const isDisabled = !url || loading;
 
 				return (
@@ -151,7 +157,7 @@ export function StreamingServiceButtons({
 								<div className="relative group/tooltip">
 									<AlertTriangle className="h-4 w-4 text-yellow-400" />
 									<div className="absolute hidden group-hover/tooltip:block top-full right-0 mt-1 px-2 py-1 bg-black/90 text-white text-xs rounded whitespace-nowrap z-10">
-										May not work correctly
+										{warningMessage || "May not work correctly"}
 									</div>
 								</div>
 							</div>

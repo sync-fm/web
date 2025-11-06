@@ -5,6 +5,7 @@ import syncfmconfig from "@/syncfm.config";
 import type { SyncFMSong, SyncFMAlbum, SyncFMArtist } from "syncfm.ts";
 import { captureServerEvent, captureServerException } from "@/lib/analytics/server";
 import { durationSince, extractUrlMetadata } from "@/lib/analytics/utils";
+import { normalizeConversionOutcome } from "@/lib/normalizeConversionOutcome";
 
 const syncfm = new SyncFM(syncfmconfig);
 
@@ -111,9 +112,14 @@ export async function GET(request: NextRequest) {
             });
         }
 
+        const normalized = normalizeConversionOutcome(convertedData);
+
         return respond(200, convertedData, {
             stage: 'success',
             input_type: inputType,
+            available_services: normalized.availableServices,
+            missing_services: normalized.missingServices,
+            has_partial_success: normalized.hasPartialSuccess,
             ...urlMetadata,
         });
 

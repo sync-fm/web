@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, Calendar, Clock } from "lucide-react";
 import type {
@@ -9,6 +9,7 @@ import type {
 	SyncFMArtist,
 	SyncFMArtistTrack,
 } from "syncfm.ts";
+import { normalizeConversionOutcome, type ProviderStatus } from "@/lib/normalizeConversionOutcome";
 import { SiSpotify } from "react-icons/si";
 import { LoadingUI } from "./ui/LoadingUI";
 import { useDominantColors } from "@/lib/useDominantColors";
@@ -40,6 +41,32 @@ export function ArtistView({
 	const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const audioRef = useRef<HTMLAudioElement | null>(null);
+
+	const normalizedOutcome = useMemo(() => (artist ? normalizeConversionOutcome(artist) : undefined), [artist]);
+
+	const serviceStatus = useMemo(() => {
+		if (!normalizedOutcome) return undefined;
+		return normalizedOutcome.statuses.reduce((acc, status) => {
+			acc[status.service] = status;
+			return acc;
+		}, {} as Record<ServiceName, ProviderStatus>);
+	}, [normalizedOutcome]);
+
+	const hasUnavailableServices = normalizedOutcome ? normalizedOutcome.missingServices.length > 0 : false;
+
+	const getShareFallback = useCallback(
+		(service: ServiceName): string | null => {
+			if (!artist) return null;
+
+			const params = new URLSearchParams({
+				syncId: artist.syncId,
+				service,
+				partial: "true",
+			});
+			return `/artist?${params.toString()}`;
+		},
+		[artist],
+	);
 
 	useEffect(() => {
 		const audioEl = audioRef.current;
@@ -163,33 +190,54 @@ export function ArtistView({
 
 	const getStreamingUrl = useCallback(
 		async (service: ServiceName): Promise<string> => {
-			if (!artist) return Promise.reject(new Error("Artist not loaded"));
+			if (!artist) {
+				throw new Error("Artist not loaded");
+			}
 
 			const cache = streamingUrlCacheRef.current;
 			const cached = cache.get(service);
-			if (cached) return cached;
+			if (cached) {
+				return typeof cached === "string" ? cached : cached;
+			}
+
+			const status = serviceStatus?.[service];
+			const shareFallback = getShareFallback(service);
+			if (status && !status.available && shareFallback) {
+				cache.set(service, shareFallback);
+				return shareFallback;
+			}
 
 			const promise = (async (): Promise<string> => {
 				try {
-					const res = await fetch("/api/createUrl", {
+					const response = await fetch("/api/createUrl", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ service, input: artist, type: "artist" }),
 					});
-					const { url: createdUrl } = await res.json();
-					if (createdUrl) {
-						streamingUrlCacheRef.current.set(service, createdUrl);
-						return createdUrl;
+					const result: { url?: string | null } = await response.json();
+					const resolvedUrl = result?.url ?? null;
+					if (resolvedUrl) {
+						streamingUrlCacheRef.current.set(service, resolvedUrl);
+						return resolvedUrl;
 					}
-				} catch (e) {
-					console.error("createUrl failed:", e);
+				} catch (error) {
+					console.error("createUrl failed:", error);
+				}
+
+				if (shareFallback) {
+					streamingUrlCacheRef.current.set(service, shareFallback);
+					return shareFallback;
 				}
 
 				if (url) {
-					return `/api/handle/${service}?url=${encodeURIComponent(url)}`;
+					const fallback = `/api/handle/${service}?url=${encodeURIComponent(url)}`;
+					streamingUrlCacheRef.current.set(service, fallback);
+					return fallback;
 				}
 				if (syncId) {
-					return `/api/handle/${service}?syncId=${encodeURIComponent(syncId)}`;
+					const fallback = `/api/handle/${service}?syncId=${encodeURIComponent(syncId)}`;
+					streamingUrlCacheRef.current.set(service, fallback);
+					return fallback;
 				}
 
 				throw new Error("Cannot create URL: no url or syncId available");
@@ -198,7 +246,7 @@ export function ArtistView({
 			cache.set(service, promise);
 			return promise;
 		},
-		[artist, url, syncId],
+		[artist, url, syncId, serviceStatus, getShareFallback],
 	);
 
 	if (
@@ -308,7 +356,15 @@ export function ArtistView({
 						</motion.div>
 					)}
 
-					<StreamingServiceButtons createUrl={getStreamingUrl} />
+					{hasUnavailableServices && (
+						<p className="mb-4 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-200 backdrop-blur">
+							Some streaming providers are temporarily unavailable. Try another service or check back later.
+						</p>
+					)}
+					<StreamingServiceButtons
+						createUrl={getStreamingUrl}
+						serviceStatus={serviceStatus}
+					/>
 				</div>
 			</div>
 
