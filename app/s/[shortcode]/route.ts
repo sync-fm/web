@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { resolveCanonicalUrl } from "@/lib/canonical-url";
+import { getErrorURL, getURL } from "@/lib/url-factory";
 import { SyncFM } from "syncfm.ts";
 import type { SyncFMSong, SyncFMAlbum, SyncFMArtist } from "syncfm.ts";
 import syncfmconfig from "@/syncfm.config";
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             message: string;
             code?: string;
         }): URL => {
-            const errorUrl = resolveCanonicalUrl(request, "/error");
+            const errorUrl = getErrorURL();
             errorUrl.searchParams.set("errorType", options.errorType);
             errorUrl.searchParams.set("entityType", options.entityType);
             errorUrl.searchParams.set("message", options.message);
@@ -108,13 +108,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             return NextResponse.redirect(errorUrl);
         }
 
-        const redirectUrl = resolveCanonicalUrl(request, `/${inputType}`);
+        const redirectUrl = getURL(`${inputType}`);
         redirectUrl.searchParams.set("syncId", convertedData.syncId);
         return NextResponse.redirect(redirectUrl);
     } catch (error) {
         console.error("Error processing request:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        const errorUrl = resolveCanonicalUrl(request, "/error");
+        const errorUrl = getErrorURL();
         errorUrl.searchParams.set("errorType", "unknown");
         errorUrl.searchParams.set("entityType", "song");
         errorUrl.searchParams.set("url", request.nextUrl.searchParams.get("url") || "");

@@ -61,20 +61,6 @@ export function ArtistView({
 		? normalizedOutcome.missingServices.length > 0
 		: false;
 
-	const getShareFallback = useCallback(
-		(service: ServiceName): string | null => {
-			if (!artist) return null;
-
-			const params = new URLSearchParams({
-				syncId: artist.syncId,
-				service,
-				partial: "true",
-			});
-			return `/artist?${params.toString()}`;
-		},
-		[artist],
-	);
-
 	useEffect(() => {
 		const audioEl = audioRef.current;
 		if (!audioEl) return;
@@ -209,11 +195,6 @@ export function ArtistView({
 			}
 
 			const status = serviceStatus?.[service];
-			const shareFallback = getShareFallback(service);
-			if (status && !status.available && shareFallback) {
-				cache.set(service, shareFallback);
-				return shareFallback;
-			}
 
 			const promise = (async (): Promise<string> => {
 				try {
@@ -230,11 +211,6 @@ export function ArtistView({
 					}
 				} catch (error) {
 					console.error("createUrl failed:", error);
-				}
-
-				if (shareFallback) {
-					streamingUrlCacheRef.current.set(service, shareFallback);
-					return shareFallback;
 				}
 
 				if (url) {
@@ -254,7 +230,7 @@ export function ArtistView({
 			cache.set(service, promise);
 			return promise;
 		},
-		[artist, url, syncId, serviceStatus, getShareFallback],
+		[artist, url, syncId, serviceStatus],
 	);
 
 	if (

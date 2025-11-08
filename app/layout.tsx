@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { createMetadata } from "@/lib/utils";
-import { PostHogProvider } from "@/providers/MainProviders";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -47,9 +46,7 @@ export default function RootLayout({
 			<body
 				className={`overflow-x-hidden ${geistSans.variable} ${geistMono.variable} antialiased`}
 			>
-				<Suspense fallback={null}>
-					<PostHogProvider>{children}</PostHogProvider>
-				</Suspense>
+				{children}
 			</body>
 		</html>
 	);

@@ -2,10 +2,9 @@
 
 import posthog from "posthog-js";
 import type { CaptureOptions, Properties } from "posthog-js";
-import env from "@/lib/meow-env";
-
+import { meowenv } from "@/lib/meow-env";
+const env = new meowenv(true);
 const API_KEY = env.get("NEXT_PUBLIC_POSTHOG_KEY");
-const API_HOST = env.get("NEXT_PUBLIC_POSTHOG_API_HOST") ?? "/ingest";
 const ENABLE_IN_DEV = env.get("NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV") === "true";
 
 let initialized = false;
@@ -25,7 +24,8 @@ export function initPosthogClient() {
     if (!key) return undefined;
 
     posthog.init(key, {
-        api_host: API_HOST,
+        api_host: "/relay-8aSv",
+        ui_host: 'https://eu.posthog.com',
         person_profiles: "identified_only",
         autocapture: true,
         capture_pageview: false,

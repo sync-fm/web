@@ -7,12 +7,12 @@ const nextConfig: NextConfig = {
     async rewrites() {
         return [
             {
-                source: "/ingest/static/:path*",
-                destination: "https://eu-assets.i.posthog.com/static/:path*",
+                source: "/relay-8aSv/static/:path*",
+                destination: "https://us-assets.i.posthog.com/static/:path*",
             },
             {
-                source: "/ingest/:path*",
-                destination: "https://eu.i.posthog.com/:path*",
+                source: "/relay-8aSv/:path*",
+                destination: "https://us.i.posthog.com/:path*",
             },
         ];
     },

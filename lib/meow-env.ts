@@ -6,7 +6,6 @@ export enum usedEnvs {
     NODE_ENV = "NODE_ENV",
     NEXT_PUBLIC_APP_URL = "NEXT_PUBLIC_APP_URL",
     NEXT_PUBLIC_POSTHOG_KEY = "NEXT_PUBLIC_POSTHOG_KEY",
-    NEXT_PUBLIC_POSTHOG_API_HOST = "NEXT_PUBLIC_POSTHOG_API_HOST",
     NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV = "NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV",
     NEXT_PUBLIC_APP_VERSION = "NEXT_PUBLIC_APP_VERSION",
     POSTHOG_DISABLED = "POSTHOG_DISABLED",
@@ -20,9 +19,8 @@ const defaultEnvValues: Record<usedEnvs, string> = {
     SUPABASE_KEY: "your-supabase-key",
     SUPABASE_URL: "your-supabase-url",
     NODE_ENV: "development",
-    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+    NEXT_PUBLIC_APP_URL: "meow",
     NEXT_PUBLIC_POSTHOG_KEY: "",
-    NEXT_PUBLIC_POSTHOG_API_HOST: "https://app.posthog.com",
     NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV: "false",
     NEXT_PUBLIC_APP_VERSION: "development",
     POSTHOG_DISABLED: "false",
@@ -38,7 +36,6 @@ const failIfDefaultMap: Record<usedEnvs, boolean> = {
     NODE_ENV: false,
     NEXT_PUBLIC_APP_URL: true,
     NEXT_PUBLIC_POSTHOG_KEY: false,
-    NEXT_PUBLIC_POSTHOG_API_HOST: false,
     NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV: false,
     NEXT_PUBLIC_APP_VERSION: false,
     POSTHOG_DISABLED: false,
@@ -50,16 +47,18 @@ interface ValidateEnvOptions {
 }
 export class meowenv {
     protected rawEnv: Record<usedEnvs, string> = process.env as Record<usedEnvs, string>;
-    constructor() {
-        for (const key of Object.values(usedEnvs)) {
-            const value = this.rawEnv[key];
-            const defaultValue = defaultEnvValues[key];
-            const shouldFailIfDefault = failIfDefaultMap[key];
-            if ((value === undefined || value === "") && shouldFailIfDefault) {
-                throw new Error(`Environment variable ${key} is not set.`);
-            }
-            if (value === defaultValue && shouldFailIfDefault) {
-                throw new Error(`Environment variable ${key} is set to default value. Please update it.`);
+    constructor(skipValidation = false) {
+        if (!skipValidation) {
+            for (const key of Object.values(usedEnvs)) {
+                const value = this.rawEnv[key];
+                const defaultValue = defaultEnvValues[key];
+                const shouldFailIfDefault = failIfDefaultMap[key];
+                if ((value === undefined || value === "") && shouldFailIfDefault) {
+                    throw new Error(`Environment variable ${key} is not set.`);
+                }
+                if (value === defaultValue && shouldFailIfDefault) {
+                    throw new Error(`Environment variable ${key} is set to default value. Please update it.`);
+                }
             }
         }
     }
@@ -109,6 +108,3 @@ export class meowenv {
         }
     }
 }
-
-export const env = new meowenv();
-export default env;

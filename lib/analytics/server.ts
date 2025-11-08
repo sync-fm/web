@@ -1,8 +1,7 @@
 import { PostHog } from "posthog-node";
-import env from "@/lib/meow-env";
-
+import { meowenv } from "@/lib/meow-env";
+const env = new meowenv(false);
 const API_KEY = env.get("NEXT_PUBLIC_POSTHOG_KEY");
-const HOST = env.get("NEXT_PUBLIC_POSTHOG_API_HOST") ?? "/ingest";
 const DISABLED = env.get("POSTHOG_DISABLED") === "true";
 
 let client: PostHog | null = null;
@@ -16,11 +15,9 @@ function createClient(): PostHog | undefined {
         return client ?? undefined;
     }
 
-    const options: Record<string, unknown> = {
-        host: HOST,
-    };
-
-    client = new PostHog(API_KEY, options);
+    client = new PostHog(API_KEY, {
+        host: `${env.get("NEXT_PUBLIC_APP_URL")}/relay-8aSv`
+    });
     return client;
 }
 

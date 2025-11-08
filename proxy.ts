@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { SyncFM } from "syncfm.ts";
 import syncfmconfig from "@/syncfm.config";
 
@@ -22,7 +22,7 @@ function decodePathToFullUrl(path: string): string {
   let decoded = decodeURIComponent(path)
 
   // Fix cases like http:/ or https:/ (missing one slash)
-  decoded = decoded.replace(/^https?:\/(?!\/)/, (match) => match + '/')
+  decoded = decoded.replace(/^https?:\/(?!\/)/, (match) => `${match}/`)
 
   return decoded
 }
@@ -53,7 +53,8 @@ export async function proxy(request: NextRequest) {
   if (subdomain && subdomain !== 'www') {
     // Prevent redirect loops: don't rewrite internal framework or API routes
     // or requests that are already hitting our handler.
-    const skipPrefixes = ['/api/', '/_next/', '/_static/', '/favicon.ico', '/robots.txt']
+    const skipPrefixes = ['/api/', '/_next/', '/_static/', '/favicon.ico', '/robots.txt', "/sitemap.xml"
+      , "/song", "/album", "/artist", "/playlist"];
     for (const prefix of skipPrefixes) {
       if (pathname.startsWith(prefix)) return NextResponse.next()
     }

@@ -6,7 +6,7 @@ import syncfmconfig from "@/syncfm.config";
 import { captureServerEvent, captureServerException } from "@/lib/analytics/server";
 import { durationSince, extractUrlMetadata } from "@/lib/analytics/utils";
 import { normalizeConversionOutcome } from "@/lib/normalizeConversionOutcome";
-import { resolveCanonicalUrl } from "@/lib/canonical-url";
+import { getErrorURL } from '@/lib/url-factory';
 
 const syncfm = new SyncFM(syncfmconfig);
 
@@ -51,8 +51,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   };
 
   const respondRedirect = (target: string | URL, analytics: Record<string, unknown> = {}) => {
-    const resolvedUrl = resolveCanonicalUrl(request, target);
-
+    const resolvedUrl = target instanceof URL ? target : new URL(target);
     recordResponse(302, {
       response_type: "redirect",
       redirect_host: resolvedUrl.hostname,
@@ -88,7 +87,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!originalUrl && !syncId) {
       const analytics = { reason: "missing_parameters" };
       if (!noRedirect) {
-        const errorUrl = new URL('/error', request.url);
+        const errorUrl = getErrorURL();
         errorUrl.searchParams.set('errorType', 'fetch');
         errorUrl.searchParams.set('entityType', 'song');
         errorUrl.searchParams.set('message', 'Missing URL or syncId parameter');
@@ -102,7 +101,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       if (!rawService) {
         const analytics = { reason: "invalid_service", stage: "syncId" };
         if (!noRedirect) {
-          const errorUrl = new URL('/error', request.url);
+          const errorUrl = getErrorURL();
           errorUrl.searchParams.set('errorType', 'fetch');
           errorUrl.searchParams.set('entityType', 'song');
           errorUrl.searchParams.set('message', 'Invalid service');
@@ -141,7 +140,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             service,
           };
           if (!noRedirect) {
-            const errorUrl = new URL('/error', request.url);
+            const errorUrl = getErrorURL();
             errorUrl.searchParams.set('errorType', 'fetch');
             errorUrl.searchParams.set('entityType', 'song');
             errorUrl.searchParams.set('syncId', syncId);
@@ -221,7 +220,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         };
 
         if (!noRedirect) {
-          const errorUrl = new URL('/error', request.url);
+          const errorUrl = getErrorURL();
           errorUrl.searchParams.set('errorType', 'fetch');
           errorUrl.searchParams.set('entityType', 'song');
           errorUrl.searchParams.set('syncId', syncId);
@@ -244,7 +243,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         originalUrl,
       };
       if (!noRedirect) {
-        const errorUrl = new URL('/error', request.url);
+        const errorUrl = getErrorURL();
         errorUrl.searchParams.set('errorType', 'fetch');
         errorUrl.searchParams.set('entityType', 'song');
         if (originalUrl) errorUrl.searchParams.set('url', originalUrl);
@@ -257,7 +256,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!rawService) {
       const analytics = { reason: "invalid_service", stage: "url" };
       if (!noRedirect) {
-        const errorUrl = new URL('/error', request.url);
+        const errorUrl = getErrorURL();
         errorUrl.searchParams.set('errorType', 'fetch');
         errorUrl.searchParams.set('entityType', 'song');
         errorUrl.searchParams.set('message', 'Invalid service');
@@ -285,7 +284,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       };
 
       if (!noRedirect) {
-        const errorUrl = new URL('/error', request.url);
+        const errorUrl = getErrorURL();
         errorUrl.searchParams.set('errorType', 'fetch');
         errorUrl.searchParams.set('entityType', 'song');
         errorUrl.searchParams.set('url', originalUrl);
@@ -332,7 +331,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             service,
           };
           if (!noRedirect) {
-            const errorUrl = new URL('/error', request.url);
+            const errorUrl = getErrorURL();
             errorUrl.searchParams.set('errorType', 'conversion');
             errorUrl.searchParams.set('entityType', 'song');
             errorUrl.searchParams.set('url', originalUrl);
@@ -361,7 +360,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       };
 
       if (!noRedirect) {
-        const errorUrl = new URL('/error', request.url);
+        const errorUrl = getErrorURL();
         errorUrl.searchParams.set('errorType', 'conversion');
         errorUrl.searchParams.set('entityType', inputType);
         errorUrl.searchParams.set('url', originalUrl);
@@ -385,7 +384,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         service,
       };
       if (!noRedirect) {
-        const errorUrl = new URL('/error', request.url);
+        const errorUrl = getErrorURL();
         errorUrl.searchParams.set('errorType', 'conversion');
         errorUrl.searchParams.set('entityType', inputType);
         errorUrl.searchParams.set('url', originalUrl);
@@ -447,7 +446,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
     if (!noRedirect) {
-      const errorUrl = new URL('/error', request.url);
+      const errorUrl = getErrorURL();
       errorUrl.searchParams.set('errorType', 'unknown');
       errorUrl.searchParams.set('entityType', 'song');
       if (originalUrl) errorUrl.searchParams.set('url', originalUrl);

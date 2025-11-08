@@ -3,7 +3,8 @@ import { ArtistView } from "@/components/ArtistView";
 import { getThinBackgroundColorFromImageUrl } from "@/lib/serverColors";
 import type { SyncFMArtist } from "syncfm.ts";
 import { headers } from "next/headers";
-import env from "@/lib/meow-env";
+import { meowenv } from "@/lib/meow-env";
+const env = new meowenv(true);
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 

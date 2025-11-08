@@ -57,20 +57,6 @@ export function SongView({
 		? normalizedOutcome.missingServices.length > 0
 		: false;
 
-	const getShareFallback = useCallback(
-		(service: ServiceName): string | null => {
-			if (!song) return null;
-
-			const params = new URLSearchParams({
-				syncId: song.syncId,
-				service,
-				partial: "true",
-			});
-			return `/song?${params.toString()}`;
-		},
-		[song],
-	);
-
 	useEffect(() => {
 		async function getBlurHash(imageUrl: string) {
 			try {
@@ -162,12 +148,6 @@ export function SongView({
 			}
 
 			const status = serviceStatus?.[service];
-			const shareFallback = getShareFallback(service);
-
-			if (status && !status.available && shareFallback) {
-				cache.set(service, shareFallback);
-				return shareFallback;
-			}
 
 			const promise = (async (): Promise<string> => {
 				try {
@@ -194,11 +174,6 @@ export function SongView({
 					console.error("createUrl failed:", error);
 				}
 
-				if (shareFallback) {
-					streamingUrlCacheRef.current.set(service, shareFallback);
-					return shareFallback;
-				}
-
 				if (url) {
 					const fallback = `/api/handle/${service}?url=${encodeURIComponent(url)}`;
 					streamingUrlCacheRef.current.set(service, fallback);
@@ -216,7 +191,7 @@ export function SongView({
 			cache.set(service, promise);
 			return promise;
 		},
-		[song, url, syncId, serviceStatus, getShareFallback],
+		[song, url, syncId, serviceStatus],
 	);
 
 	if (

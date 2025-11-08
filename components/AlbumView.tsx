@@ -57,20 +57,6 @@ export default function AlbumView({
 		? normalizedOutcome.missingServices.length > 0
 		: false;
 
-	const getShareFallback = useCallback(
-		(service: ServiceName): string | null => {
-			if (!album) return null;
-
-			const params = new URLSearchParams({
-				syncId: album.syncId,
-				service,
-				partial: "true",
-			});
-			return `/album?${params.toString()}`;
-		},
-		[album],
-	);
-
 	useEffect(() => {
 		async function getBlurHash(imageUrl: string) {
 			try {
@@ -190,11 +176,6 @@ export default function AlbumView({
 			}
 
 			const status = serviceStatus?.[service];
-			const shareFallback = getShareFallback(service);
-			if (status && !status.available && shareFallback) {
-				cache.set(service, shareFallback);
-				return shareFallback;
-			}
 
 			const promise = (async (): Promise<string> => {
 				try {
@@ -221,11 +202,6 @@ export default function AlbumView({
 					console.error("createUrl failed:", error);
 				}
 
-				if (shareFallback) {
-					streamingUrlCacheRef.current.set(service, shareFallback);
-					return shareFallback;
-				}
-
 				if (url) {
 					const fallback = `/api/handle/${service}?url=${encodeURIComponent(url)}`;
 					streamingUrlCacheRef.current.set(service, fallback);
@@ -244,7 +220,7 @@ export default function AlbumView({
 			cache.set(service, promise);
 			return promise;
 		},
-		[album, url, syncId, serviceStatus, getShareFallback],
+		[album, url, syncId, serviceStatus],
 	);
 
 	if (

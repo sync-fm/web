@@ -5,7 +5,8 @@ import type { SyncFMAlbum } from "syncfm.ts";
 import { headers } from "next/headers";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-import { env } from "@/lib/meow-env";
+import { meowenv } from "@/lib/meow-env";
+const env = new meowenv(true);
 export async function generateMetadata(props: {
 	params: Promise<{ searchParams: { url: string; syncId: string } }>;
 	searchParams: Promise<{ url: string; syncId: string }>;
