@@ -546,6 +546,83 @@ export default function LandingV2Page() {
 					</section>
 
 					<section
+						id="discord-bot"
+						className="rounded-4xl border border-white/10 bg-linear-to-br from-indigo-500/12 via-purple-500/6 to-black/60 p-8 backdrop-blur-2xl"
+					>
+						<div className="mb-8 space-y-3">
+							<p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-white/55">
+								<Activity className="h-3.5 w-3.5" />
+								Discord Integration
+							</p>
+							<h3 className="text-2xl font-semibold text-white">
+								SyncFM, now in your Discord servers.
+							</h3>
+							<p className="text-sm text-white/70">
+								Our Discord bot brings SyncFM's universal music link conversion
+								directly to your servers and DMs. Share music instantly without
+								leaving Discord.
+							</p>
+						</div>
+						<div className="grid gap-6 md:grid-cols-2">
+							<motion.div
+								className="rounded-3xl border border-white/12 bg-black/45 p-6"
+								initial={{ opacity: 0, y: 16 }}
+								whileInView={{ opacity: 1, y: 0 }}
+								viewport={{ once: true }}
+								transition={{ duration: 0.45 }}
+							>
+								<p className="text-xs uppercase tracking-[0.3em] text-indigo-200/75">
+									Right-click magic
+								</p>
+								<p className="mt-3 text-sm text-white/75">
+									See a music link in chat? Just right-click the message and
+									select "Convert to SyncFM" to instantly share it as a
+									beautiful embed with buttons for all streaming services.
+								</p>
+							</motion.div>
+							<motion.div
+								className="rounded-3xl border border-white/12 bg-black/45 p-6"
+								initial={{ opacity: 0, y: 16 }}
+								whileInView={{ opacity: 1, y: 0 }}
+								viewport={{ once: true }}
+								transition={{ duration: 0.45, delay: 0.1 }}
+							>
+								<p className="text-xs uppercase tracking-[0.3em] text-indigo-200/75">
+									Slash command ready
+								</p>
+								<p className="mt-3 text-sm text-white/75">
+									Use{" "}
+									<code className="rounded bg-white/10 px-1.5 py-0.5 text-xs font-mono">
+										/share
+									</code>{" "}
+									followed by any Spotify, Apple Music, or YouTube Music link to
+									convert and post it instantly.
+								</p>
+							</motion.div>
+						</div>
+						<div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+							<div className="space-y-2">
+								<p className="text-sm font-medium text-white">
+									Works everywhere Discord does
+								</p>
+								<p className="text-xs text-white/60">
+									Install once, use in servers, DMs, and group chats. No server
+									permissions needed.
+								</p>
+							</div>
+							<Link
+								href="https://discord.com/oauth2/authorize?client_id=1432684540991770684"
+								target="_blank"
+								rel="noreferrer"
+								className="inline-flex items-center gap-2 rounded-full bg-linear-to-r from-indigo-600 to-purple-600 px-6 py-3 text-sm font-medium text-white shadow-[0_8px_32px_rgba(99,102,241,0.3)] transition hover:shadow-[0_8px_32px_rgba(99,102,241,0.4)] hover:scale-[1.02]"
+							>
+								Add to Discord
+								<ArrowRight className="h-4 w-4" />
+							</Link>
+						</div>
+					</section>
+
+					<section
 						id="roadmap"
 						className="rounded-4xl border border-white/10 bg-white/5 p-8 backdrop-blur-2xl"
 					>

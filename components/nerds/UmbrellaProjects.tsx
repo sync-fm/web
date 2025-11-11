@@ -6,7 +6,7 @@ import { umbrellaProjects } from "./constants";
 
 export const UmbrellaProjects = () => {
 	return (
-		<section className="rounded-[32px] border border-white/10 bg-black/45 p-8 backdrop-blur-2xl">
+		<section className="rounded-4xl border border-white/10 bg-black/45 p-8 backdrop-blur-2xl">
 			<div className="flex flex-col gap-8 lg:flex-row lg:items-start">
 				<div className="flex-1 space-y-4">
 					<span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs uppercase tracking-[0.3em] text-white/45">
@@ -26,7 +26,7 @@ export const UmbrellaProjects = () => {
 					{umbrellaProjects.map((project) => (
 						<motion.div
 							key={project.name}
-							className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/6 via-white/3 to-white/10 p-5 backdrop-blur-xl"
+							className="rounded-3xl border border-white/10 bg-linear-to-br from-white/6 via-white/3 to-white/10 p-5 backdrop-blur-xl"
 							initial={{ opacity: 0, y: 20 }}
 							whileInView={{ opacity: 1, y: 0 }}
 							viewport={{ once: true }}

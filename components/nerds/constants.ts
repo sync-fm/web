@@ -10,6 +10,11 @@ export const umbrellaProjects = [
             "TypeScript SDK that orchestrates canonical IDs, adapter lifecycles, atomic storage, and background workers for third-party integrations.",
     },
     {
+        name: "discord bot",
+        description:
+            "User-installable Discord app with context menus and slash commands that converts music links to SyncFM embeds with multi-service buttons, now shipping in production.",
+    },
+    {
         name: "applemusic-api",
         description:
             "Typed client for Apple Music's MusicKit and reverse engineered catalog endpoints with authenticated token refresh, lazy storefront hydration, and catalog caching.",
@@ -30,11 +35,6 @@ export const researchProjects: Array<{
             title: "Worker mesh",
             body: "Resilient Bun workers orchestrate retries, rate limits, and long-tail catalog lookups so our adapter graph scales without cascading timeouts.",
             tags: ["bun", "queues", "resilience"],
-        },
-        {
-            title: "SyncFM Discord App",
-            body: "Prototype app that converts music links, resolves canonical IDs, and unfurls deep links that respect each listener's preferred service.",
-            tags: ["discord", "presence", "social"],
         },
         {
             title: "Open Music RPC",

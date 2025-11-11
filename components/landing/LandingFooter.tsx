@@ -26,6 +26,14 @@ export const LandingFooter = () => {
 					>
 						GitHub
 					</Link>
+					<Link
+						href="https://discord.gg/v6bCFuavU6"
+						target="_blank"
+						rel="noreferrer"
+						className="transition hover:text-orange-200"
+					>
+						Discord
+					</Link>
 				</div>
 			</div>
 		</footer>
