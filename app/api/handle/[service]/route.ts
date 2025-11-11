@@ -20,6 +20,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const start = Date.now();
   const urlMetadata = extractUrlMetadata(originalUrl);
 
+  // Debug logging for URL processing
+  console.log("DEBUG: Received originalUrl:", originalUrl);
+  console.log("DEBUG: originalUrl type:", typeof originalUrl);
+  console.log("DEBUG: originalUrl length:", originalUrl?.length);
+  if (originalUrl) {
+    console.log("DEBUG: originalUrl chars:", originalUrl.split('').slice(0, 50).map(c => `${c}(${c.charCodeAt(0)})`).join(' '));
+  }
+
   captureServerEvent("api.handle.request", {
     route: "api/handle/[service]",
     method: "GET",
@@ -305,12 +313,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     try {
       switch (inputType) {
-        case 'song':
+        case 'song': {
+          console.log("DEBUG: Processing song URL:", originalUrl);
+          console.log("DEBUG: Service:", service);
+
+          // Get the syncfm service to check URL parsing
+          const ytmusicService = syncfm.__INTERNAL_getService('ytmusic');
+          const extractedId = ytmusicService.getIdFromUrl(originalUrl);
+          console.log("DEBUG: Extracted video ID:", extractedId, "Length:", extractedId?.length, "Type:", typeof extractedId);
+
+          if (extractedId) {
+            console.log("DEBUG: Video ID chars:", extractedId.split('').map(c => `${c}(${c.charCodeAt(0)})`).join(' '));
+            console.log("DEBUG: Regex test:", /^[a-zA-Z0-9-_]{11}$/.test(extractedId));
+          }
+
           convertedData = await syncfm.convertSong(await syncfm.getInputSongInfo(originalUrl), service);
           if (!noRedirect && convertedData) {
             convertedUrl = await syncfm.createSongURL(convertedData, service, convertedData.syncId);
           }
           break;
+        }
         case 'album':
           convertedData = await syncfm.convertAlbum(await syncfm.getInputAlbumInfo(originalUrl), service);
           if (!noRedirect && convertedData) {
