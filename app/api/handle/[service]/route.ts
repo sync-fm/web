@@ -327,7 +327,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             console.log("DEBUG: Regex test:", /^[a-zA-Z0-9-_]{11}$/.test(extractedId));
           }
 
-          convertedData = await syncfm.convertSong(await syncfm.getInputSongInfo(originalUrl), service);
+          console.log("DEBUG: About to call syncfm.getInputSongInfo with URL:", originalUrl);
+          const inputSongInfo = await syncfm.getInputSongInfo(originalUrl);
+          console.log("DEBUG: Successfully got inputSongInfo:", JSON.stringify(inputSongInfo, null, 2));
+          
+          convertedData = await syncfm.convertSong(inputSongInfo, service);
           if (!noRedirect && convertedData) {
             convertedUrl = await syncfm.createSongURL(convertedData, service, convertedData.syncId);
           }
