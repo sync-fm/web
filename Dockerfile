@@ -19,8 +19,6 @@ ENV NODE_ENV=production
 
 USER bun
 EXPOSE 3000/tcp
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3000/ || exit 1
 ENV HOSTNAME=0.0.0.0
 ENTRYPOINT [ "bun", "run", "start:ci" ]
 
