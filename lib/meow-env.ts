@@ -11,6 +11,7 @@ export enum usedEnvs {
     POSTHOG_DISABLED = "POSTHOG_DISABLED",
     NEXT_RUNTIME = "NEXT_RUNTIME",
     NEXT_PUBLIC_RUNTIME_ENV = "NEXT_PUBLIC_RUNTIME_ENV",
+    YOUTUBE_API_KEY = "YOUTUBE_API_KEY",
 }
 
 const defaultEnvValues: Record<usedEnvs, string> = {
@@ -26,6 +27,7 @@ const defaultEnvValues: Record<usedEnvs, string> = {
     POSTHOG_DISABLED: "false",
     NEXT_RUNTIME: "",
     NEXT_PUBLIC_RUNTIME_ENV: "development",
+    YOUTUBE_API_KEY: "your_youtube_api_key",
 };
 
 const failIfDefaultMap: Record<usedEnvs, boolean> = {
@@ -41,6 +43,7 @@ const failIfDefaultMap: Record<usedEnvs, boolean> = {
     POSTHOG_DISABLED: false,
     NEXT_RUNTIME: false,
     NEXT_PUBLIC_RUNTIME_ENV: false,
+    YOUTUBE_API_KEY: true,
 };
 interface ValidateEnvOptions {
     silenceExceptErrors?: boolean;

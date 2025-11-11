@@ -6,7 +6,7 @@ const config: SyncFMConfig = {
     SpotifyClientSecret: env.get("SPOTIFY_CLIENT_SECRET"),
     SupabaseUrl: env.get("SUPABASE_URL"),
     SupabaseKey: env.get("SUPABASE_KEY"),
-    // YouTubeApiKey: env.get("YOUTUBE_API_KEY"),
+    YouTubeApiKey: env.get("YOUTUBE_API_KEY"),
 };
 
 export default config;
