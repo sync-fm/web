@@ -328,8 +328,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           }
 
           console.log("DEBUG: About to call syncfm.getInputSongInfo with URL:", originalUrl);
-          const inputSongInfo = await syncfm.getInputSongInfo(originalUrl);
-          console.log("DEBUG: Successfully got inputSongInfo:", JSON.stringify(inputSongInfo, null, 2));
+          let inputSongInfo;
+          try {
+            inputSongInfo = await syncfm.getInputSongInfo(originalUrl);
+            console.log("DEBUG: Successfully got inputSongInfo:", JSON.stringify(inputSongInfo, null, 2));
+          } catch (ytmError) {
+            console.error("DEBUG: syncfm.getInputSongInfo failed:", ytmError);
+            console.error("DEBUG: Error type:", typeof ytmError);
+            console.error("DEBUG: Error message:", ytmError instanceof Error ? ytmError.message : String(ytmError));
+            console.error("DEBUG: Error stack:", ytmError instanceof Error ? ytmError.stack : 'No stack');
+            
+            // Re-throw with more context
+            throw new Error(`YouTube Music processing failed: ${ytmError instanceof Error ? ytmError.message : String(ytmError)}`);
+          }
 
           convertedData = await syncfm.convertSong(inputSongInfo, service);
           if (!noRedirect && convertedData) {
