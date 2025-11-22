@@ -5,3 +5,14 @@ services:
       dockerfile: Dockerfile
     image: syncfm-web:latest
     restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    container_name: syncfm-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  redis-data:

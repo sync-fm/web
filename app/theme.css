@@ -1,0 +1,288 @@
+:root {
+	/* Base Colors */
+	--background: oklch(1 0 0);
+	--foreground: oklch(0.145 0 0);
+
+	/* Card & Surface */
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.145 0 0);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.145 0 0);
+
+	/* Brand Colors - Orange/Amber Theme */
+	--primary: oklch(0.679 0.177 48.324); /* orange-500 */
+	--primary-foreground: oklch(0.145 0 0); /* slate-950 for contrast */
+	--secondary: oklch(0.848 0.131 74.323); /* amber-400 */
+	--secondary-foreground: oklch(0.145 0 0);
+
+	/* Accent & Muted */
+	--muted: oklch(0.97 0 0);
+	--muted-foreground: oklch(0.556 0 0);
+	--accent: oklch(0.97 0 0);
+	--accent-foreground: oklch(0.205 0 0);
+
+	/* States */
+	--destructive: oklch(0.577 0.245 27.325);
+	--destructive-foreground: oklch(1 0 0);
+
+	/* UI Elements */
+	--border: oklch(0.922 0 0);
+	--input: oklch(0.922 0 0);
+	--ring: oklch(0.708 0 0);
+
+	/* Chart Colors */
+	--chart-1: oklch(0.679 0.177 48.324); /* orange-500 */
+	--chart-2: oklch(0.848 0.131 74.323); /* amber-400 */
+	--chart-3: oklch(0.744 0.15 60.8); /* amber-500 */
+	--chart-4: oklch(0.62 0.17 42.5); /* orange-600 */
+	--chart-5: oklch(0.828 0.189 84.429);
+
+	/* Sidebar */
+	--sidebar: oklch(0.985 0 0);
+	--sidebar-foreground: oklch(0.145 0 0);
+	--sidebar-primary: oklch(0.679 0.177 48.324);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.97 0 0);
+	--sidebar-accent-foreground: oklch(0.205 0 0);
+	--sidebar-border: oklch(0.922 0 0);
+	--sidebar-ring: oklch(0.708 0 0);
+
+	/* Brand Gradients */
+	--gradient-brand-from: oklch(0.679 0.177 48.324); /* orange-500 */
+	--gradient-brand-to: oklch(0.848 0.131 74.323); /* amber-400 */
+
+	/* Glass Morphism - Light Mode */
+	--glass-bg-light: oklch(0 0 0 / 3%);
+	--glass-bg-medium: oklch(0 0 0 / 5%);
+	--glass-bg-strong: oklch(0 0 0 / 8%);
+	--glass-border-subtle: oklch(0 0 0 / 8%);
+	--glass-border-light: oklch(0 0 0 / 12%);
+	--glass-border-medium: oklch(0 0 0 / 15%);
+	--glass-border-strong: oklch(0 0 0 / 20%);
+
+	/* Text Colors - Light Mode */
+	--text-brand: oklch(0.62 0.17 42.5); /* orange-600 for light backgrounds */
+	--text-muted-strong: oklch(0.205 0 0); /* dark gray 75% */
+	--text-muted-medium: oklch(0.371 0 0); /* dark gray 65% */
+	--text-muted-light: oklch(0.556 0 0); /* dark gray 55% */
+	--text-muted-subtle: oklch(0.708 0 0); /* dark gray 45% */
+	--text-muted-faint: oklch(0.808 0 0); /* dark gray 40% */
+
+	/* Typography */
+	--font-sans:
+		ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+	--font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-mono:
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+		monospace;
+
+	/* Border Radius */
+	--radius: 0.625rem; /* 10px - base radius */
+	--radius-full: 9999px;
+
+	/* Shadows - Light Mode */
+	--shadow-sm: 0 1px 3px 0px oklch(0 0 0 / 0.08);
+	--shadow: 0 1px 3px 0px oklch(0 0 0 / 0.1), 0 1px 2px -1px oklch(0 0 0 / 0.1);
+	--shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.1);
+	--shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.1), 0 4px 6px -4px oklch(0 0 0 / 0.1);
+	--shadow-xl: 0 20px 25px -5px oklch(0 0 0 / 0.1), 0 8px 10px -6px oklch(0 0 0 / 0.1);
+	--shadow-2xl: 0 25px 50px -12px oklch(0 0 0 / 0.25);
+
+	/* Brand Shadows - Orange Glow (Light Mode) */
+	--shadow-brand-sm: 0 4px 14px rgb(255 140 0 / 0.15);
+	--shadow-brand-md: 0 8px 24px rgb(255 120 0 / 0.2);
+	--shadow-brand-lg: 0 12px 32px rgb(255 120 0 / 0.25);
+
+	/* Glass Shadows (Light Mode) */
+	--shadow-glass-sm: 0 4px 16px rgba(0, 0, 0, 0.08);
+	--shadow-glass-md: 0 8px 24px rgba(0, 0, 0, 0.12);
+	--shadow-glass-lg: 0 12px 32px rgba(0, 0, 0, 0.15);
+	--shadow-glass-xl: 0 16px 48px rgba(0, 0, 0, 0.18);
+
+	/* Scrollbar - Light Mode */
+	--scrollbar-track: rgba(0, 0, 0, 0.05);
+	--scrollbar-thumb: rgba(0, 0, 0, 0.2);
+	--scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+	--scrollbar-thumb-active: rgba(0, 0, 0, 0.4);
+}
+
+.dark {
+	/* Base Colors */
+	--background: oklch(0.145 0 0); /* slate-950 */
+	--foreground: oklch(0.985 0 0);
+
+	/* Card & Surface */
+	--card: oklch(0.205 0 0);
+	--card-foreground: oklch(0.985 0 0);
+	--popover: oklch(0.269 0 0);
+	--popover-foreground: oklch(0.985 0 0);
+
+	/* Brand Colors - Orange/Amber Theme */
+	--primary: oklch(0.679 0.177 48.324); /* orange-500 */
+	--primary-foreground: oklch(0.145 0 0); /* slate-950 for contrast */
+	--secondary: oklch(0.848 0.131 74.323); /* amber-400 */
+	--secondary-foreground: oklch(0.145 0 0);
+
+	/* Accent & Muted */
+	--muted: oklch(0.269 0 0);
+	--muted-foreground: oklch(0.708 0 0);
+	--accent: oklch(0.371 0 0);
+	--accent-foreground: oklch(0.985 0 0);
+
+	/* States */
+	--destructive: oklch(0.704 0.191 22.216);
+	--destructive-foreground: oklch(0.985 0 0);
+
+	/* UI Elements */
+	--border: oklch(1 0 0 / 10%);
+	--input: oklch(1 0 0 / 15%);
+	--ring: oklch(0.556 0 0);
+
+	/* Chart Colors */
+	--chart-1: oklch(0.679 0.177 48.324);
+	--chart-2: oklch(0.848 0.131 74.323);
+	--chart-3: oklch(0.744 0.15 60.8);
+	--chart-4: oklch(0.62 0.17 42.5);
+	--chart-5: oklch(0.828 0.189 84.429);
+
+	/* Sidebar */
+	--sidebar: oklch(0.205 0 0);
+	--sidebar-foreground: oklch(0.985 0 0);
+	--sidebar-primary: oklch(0.679 0.177 48.324);
+	--sidebar-primary-foreground: oklch(0.145 0 0);
+	--sidebar-accent: oklch(0.269 0 0);
+	--sidebar-accent-foreground: oklch(0.985 0 0);
+	--sidebar-border: oklch(1 0 0 / 10%);
+	--sidebar-ring: oklch(0.556 0 0);
+
+	/* Brand Gradients */
+	--gradient-brand-from: oklch(0.679 0.177 48.324);
+	--gradient-brand-to: oklch(0.848 0.131 74.323);
+
+	/* Glass Morphism - Dark Mode */
+	--glass-bg-light: oklch(1 0 0 / 5%);
+	--glass-bg-medium: oklch(1 0 0 / 10%);
+	--glass-bg-strong: oklch(1 0 0 / 15%);
+	--glass-border-subtle: oklch(1 0 0 / 5%);
+	--glass-border-light: oklch(1 0 0 / 10%);
+	--glass-border-medium: oklch(1 0 0 / 12%);
+	--glass-border-strong: oklch(1 0 0 / 15%);
+
+	/* Text Colors for Dark Backgrounds */
+	--text-brand: oklch(0.909 0.075 69.145); /* orange-200 */
+	--text-muted-strong: oklch(1 0 0 / 75%); /* white/75 */
+	--text-muted-medium: oklch(1 0 0 / 65%); /* white/65 */
+	--text-muted-light: oklch(1 0 0 / 55%); /* white/55 */
+	--text-muted-subtle: oklch(1 0 0 / 45%); /* white/45 */
+	--text-muted-faint: oklch(1 0 0 / 40%); /* white/40 */
+
+	/* Shadows - Dark Mode */
+	--shadow-sm: 0 1px 3px 0px oklch(0 0 0 / 0.15);
+	--shadow: 0 1px 3px 0px oklch(0 0 0 / 0.2), 0 1px 2px -1px oklch(0 0 0 / 0.2);
+	--shadow-md: 0 1px 3px 0px oklch(0 0 0 / 0.2), 0 2px 4px -1px oklch(0 0 0 / 0.2);
+	--shadow-lg: 0 1px 3px 0px oklch(0 0 0 / 0.2), 0 4px 6px -1px oklch(0 0 0 / 0.2);
+	--shadow-xl: 0 1px 3px 0px oklch(0 0 0 / 0.2), 0 8px 10px -1px oklch(0 0 0 / 0.2);
+	--shadow-2xl: 0 1px 3px 0px oklch(0 0 0 / 0.35);
+
+	/* Brand Shadows - Orange Glow (darker) */
+	--shadow-brand-sm: 0 14px 35px rgb(255 140 0 / 0.4);
+	--shadow-brand-md: 0 16px 48px rgb(255 120 0 / 0.32);
+	--shadow-brand-lg: 0 20px 64px rgb(255 120 0 / 0.45);
+
+	/* Glass Shadows */
+	--shadow-glass-sm: 0 18px 55px rgba(8, 8, 30, 0.55);
+	--shadow-glass-md: 0 25px 80px rgba(10, 10, 45, 0.65);
+	--shadow-glass-lg: 0 30px 70px rgba(10, 10, 45, 0.35);
+	--shadow-glass-xl: 0 30px 70px rgba(10, 10, 45, 0.45);
+
+	/* Scrollbar */
+	--scrollbar-track: rgba(255, 255, 255, 0.15);
+	--scrollbar-thumb: rgba(255, 255, 255, 0.35);
+	--scrollbar-thumb-hover: rgba(255, 255, 255, 0.55);
+	--scrollbar-thumb-active: rgba(255, 255, 255, 0.8);
+}
+
+@theme inline {
+	/* Color mappings */
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+
+	/* Glass morphism utilities */
+	--color-glass-bg-light: var(--glass-bg-light);
+	--color-glass-bg-medium: var(--glass-bg-medium);
+	--color-glass-bg-strong: var(--glass-bg-strong);
+	--color-glass-border-subtle: var(--glass-border-subtle);
+	--color-glass-border-light: var(--glass-border-light);
+	--color-glass-border-medium: var(--glass-border-medium);
+	--color-glass-border-strong: var(--glass-border-strong);
+
+	/* Text color utilities */
+	--color-text-brand: var(--text-brand);
+	--color-text-muted-strong: var(--text-muted-strong);
+	--color-text-muted-medium: var(--text-muted-medium);
+	--color-text-muted-light: var(--text-muted-light);
+	--color-text-muted-subtle: var(--text-muted-subtle);
+	--color-text-muted-faint: var(--text-muted-faint);
+
+	/* Fonts */
+	--font-sans: var(--font-sans);
+	--font-mono: var(--font-mono);
+	--font-serif: var(--font-serif);
+
+	/* Radius variants */
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--radius-2xl: calc(var(--radius) + 6px);
+	--radius-3xl: calc(var(--radius) + 10px);
+	--radius-4xl: calc(var(--radius) + 18px);
+	--radius-full: var(--radius-full);
+
+	/* Shadow mappings */
+	--shadow-sm: var(--shadow-sm);
+	--shadow: var(--shadow);
+	--shadow-md: var(--shadow-md);
+	--shadow-lg: var(--shadow-lg);
+	--shadow-xl: var(--shadow-xl);
+	--shadow-2xl: var(--shadow-2xl);
+
+	/* Brand & Glass shadows */
+	--shadow-brand-sm: var(--shadow-brand-sm);
+	--shadow-brand-md: var(--shadow-brand-md);
+	--shadow-brand-lg: var(--shadow-brand-lg);
+	--shadow-glass-sm: var(--shadow-glass-sm);
+	--shadow-glass-md: var(--shadow-glass-md);
+	--shadow-glass-lg: var(--shadow-glass-lg);
+	--shadow-glass-xl: var(--shadow-glass-xl);
+}
