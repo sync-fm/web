@@ -264,7 +264,7 @@ export async function generateMetadataFromResource<T extends Resource>(
 const cachedProcessResourceRequest = cache(
 	async (params: createMetadataOptions): Promise<Result<Resource, { error: string }>> => {
 		if (!createMetadataOptionsSchema.safeParse(params).success) {
-			return err({ error: "Invalid parameters", fallback: {} });
+			return err({ error: "Invalid parameters" });
 		}
 
 		let musicInfoRes: Result<Resource, { error: string }>;

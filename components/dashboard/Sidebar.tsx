@@ -6,10 +6,10 @@ import { BarChart3, Home, Key, LayoutDashboard, LogOut, Settings } from "lucide-
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactElement } from "react";
-import { SyncFMIcon } from "#/../SyncFMIcon";
 import { MobileNavigation } from "@/components/dashboard/MobileNavigation";
 import DashboardNavigation from "@/components/dashboard/Navigation";
 import { NotificationsPopover } from "@/components/dashboard/Notifications";
+import { SyncFMIcon } from "@/components/SyncFMIcon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
