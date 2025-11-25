@@ -45,6 +45,10 @@ export async function proxy(request: NextRequest) {
 		// Create Supabase client for authentication
 		const { supabase } = createClient(request);
 
+		// Check if request is from Discord bot
+		const discordBotSecret = request.headers.get("x-discord-bot-secret");
+		const discordUserId = request.headers.get("x-discord-user-id");
+
 		// IMPORTANT: Don't write logic between createClient and getClaims()
 		// Get user claims (validates JWT - more reliable than getUser in middleware)
 		const { data } = await supabase.auth.getClaims();
@@ -60,8 +64,48 @@ export async function proxy(request: NextRequest) {
 		let userId: string | undefined;
 		let apiKeyId: string | undefined;
 
+		// Tier limits configuration
+		const tierLimits: Record<string, number> = {
+			free: 100,
+			pro: 100,
+			enterprise: 100,
+		};
+
 		// Determine rate limit based on authentication method
-		if (apiKey) {
+		// Priority: Discord Bot > API Key > Authenticated User > Anonymous
+		if (discordBotSecret && discordUserId) {
+			// === DISCORD BOT REQUEST ===
+			const expectedSecret = process.env.DISCORD_BOT_SECRET;
+
+			// Validate the shared secret
+			if (!expectedSecret || discordBotSecret !== expectedSecret) {
+				return NextResponse.json({ error: "Invalid Discord bot secret" }, { status: 401 });
+			}
+
+			// Look up linked SyncFM account by Discord identity
+			// Query the auth.identities table to find a user with this Discord provider ID
+			const { data: identityData } = await supabase.rpc("get_user_by_discord_id", {
+				discord_id: discordUserId,
+			});
+
+			if (identityData?.user_id) {
+				// Linked user - use their SyncFM rate limits
+				const { data: profile } = await supabase
+					.from("profiles")
+					.select("subscription_tier")
+					.eq("id", identityData.user_id)
+					.single();
+
+				const tier = profile?.subscription_tier || "free";
+				identifier = `user:${identityData.user_id}`;
+				userId = identityData.user_id;
+				rateLimitResult = await checkRateLimit(identifier, tierLimits[tier] || 100);
+			} else {
+				// Unlinked Discord user - stricter rate limit (50/hour)
+				identifier = `discord:${discordUserId}`;
+				rateLimitResult = await checkRateLimit(identifier, 50);
+			}
+		} else if (apiKey) {
 			// Validate API key format
 			if (!isValidApiKeyFormat(apiKey)) {
 				return NextResponse.json({ error: "Invalid API key format" }, { status: 401 });
@@ -107,11 +151,6 @@ export async function proxy(request: NextRequest) {
 				.single();
 
 			const tier = profile?.subscription_tier || "free";
-			const tierLimits: Record<string, number> = {
-				free: 100,
-				pro: 1000,
-				enterprise: 10000,
-			};
 
 			identifier = `user:${user.id}`;
 			userId = user.id;
