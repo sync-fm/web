@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { BlurHash } from "./BlurHash";
 
@@ -10,6 +10,8 @@ interface BlurredBackgroundProps {
 	dominantColors: string[];
 	className?: string;
 	thinBackgroundColor?: string;
+	/** 0 to 1, where 1 is fully black overlay */
+	dimLevel?: number;
 }
 
 // Helper to generate random values for blob animation
@@ -34,11 +36,25 @@ const adjustColor = (hex: string, amount: number) => {
 	return `#${rgbToHex(newR, newG, newB)}`;
 };
 
+interface BlobData {
+	id: number;
+	color: string;
+	top: string;
+	left: string;
+	width: string;
+	height: string;
+	duration: number;
+	delay: number;
+	animateX: number[];
+	animateY: number[];
+}
+
 export function BlurredBackground({
 	hash,
 	dominantColors,
 	className = "",
 	thinBackgroundColor,
+	dimLevel = 0,
 }: BlurredBackgroundProps) {
 	const [isMobile, setIsMobile] = useState(false);
 	const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -81,9 +97,13 @@ export function BlurredBackground({
 		};
 	}, []);
 
-	// Create memoized blob properties
-	const blobs = React.useMemo(() => {
-		if (!dominantColors || dominantColors.length === 0) return [];
+	const [blobs, setBlobs] = useState<BlobData[]>([]);
+
+	useEffect(() => {
+		if (!dominantColors || dominantColors.length === 0) {
+			setBlobs([]);
+			return;
+		}
 
 		const allColors = [...dominantColors];
 
@@ -100,7 +120,7 @@ export function BlurredBackground({
 		}
 
 		// Use up to 10 unique colors for the blobs
-		return uniqueColors.slice(0, 10).map((color, i) => ({
+		const newBlobs = uniqueColors.slice(0, 10).map((color, i) => ({
 			id: i,
 			color,
 			top: `${random(-40, 60)}%`,
@@ -109,7 +129,10 @@ export function BlurredBackground({
 			height: `${random(40, isMobile ? 80 : 60)}vw`,
 			duration: random(30, 45),
 			delay: random(0, 8),
+			animateX: [0, random(-80, 80), random(-80, 80), 0],
+			animateY: [0, random(-80, 80), random(-80, 80), 0],
 		}));
+		setBlobs(newBlobs);
 	}, [dominantColors, isMobile]);
 
 	const bg = (
@@ -169,8 +192,8 @@ export function BlurredBackground({
 							}}
 							animate={{
 								rotate: [0, 360],
-								x: [0, random(-80, 80), random(-80, 80), 0],
-								y: [0, random(-80, 80), random(-80, 80), 0],
+								x: blob.animateX,
+								y: blob.animateY,
 								scale: [1, 1.15, 1, 0.9, 1],
 							}}
 							transition={{
@@ -205,6 +228,17 @@ export function BlurredBackground({
 					background: `linear-gradient(to bottom, rgba(0,0,0,0.05), transparent 40%, rgba(0,0,0,0.1))`,
 				}}
 			/>
+
+			{/* Dimming overlay */}
+			{dimLevel > 0 && (
+				<div
+					className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
+					style={{
+						backgroundColor: "black",
+						opacity: dimLevel,
+					}}
+				/>
+			)}
 		</div>
 	);
 

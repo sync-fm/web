@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
 		authInterrupts: true,
 		typedEnv: true,
 	},
+	webpack: (config) => {
+		config.experiments = {
+			...config.experiments,
+			asyncWebAssembly: true,
+			layers: true,
+		};
+		return config;
+	},
 	typedRoutes: true,
 	turbopack: {
 		root: __dirname,

@@ -22,17 +22,8 @@ export async function POST(request: NextRequest) {
 	}
 
 	try {
-		console.info("[api/notifications/consume] consuming", {
-			userId: user.id,
-			notificationId,
-		});
 		const notification = await consumeNotification(user.id, notificationId);
 		const success = Boolean(notification);
-		console.info("[api/notifications/consume] result", {
-			userId: user.id,
-			notificationId,
-			success,
-		});
 		return NextResponse.json({ success });
 	} catch (error) {
 		console.error("[api/notifications/consume] failed", {

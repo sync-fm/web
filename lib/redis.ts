@@ -26,19 +26,19 @@ const redis = new Redis(authConfig.redis.url, {
 
 // Connection event handlers
 redis.on("connect", () => {
-	console.log("✅ Redis connected");
+	console.log("Redis connected");
 });
 
 redis.on("error", (err: Error) => {
-	console.error("❌ Redis connection error:", err.message);
+	console.error("Redis connection error:", err.message);
 });
 
 redis.on("ready", () => {
-	console.log("✅ Redis ready to accept commands");
+	console.log("Redis ready to accept commands");
 });
 
 redis.on("close", () => {
-	console.log("⚠️ Redis connection closed");
+	console.log("Redis connection closed");
 });
 
 // Graceful shutdown
@@ -53,10 +53,10 @@ export default redis;
 export async function testRedisConnection(): Promise<boolean> {
 	try {
 		await redis.ping();
-		console.log("✅ Redis PING successful");
+		console.log("Redis PING successful");
 		return true;
 	} catch (error) {
-		console.error("❌ Redis PING failed:", error);
+		console.error("Redis PING failed:", error);
 		return false;
 	}
 }

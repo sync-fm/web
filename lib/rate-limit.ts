@@ -26,12 +26,8 @@ export async function checkRateLimit(
 		const window = Math.floor(now / windowMs);
 		const windowKey = `${key}:${window}`;
 
-		console.log("[RATE LIMIT] Incrementing counter for:", windowKey);
-
 		// Increment the counter for this window
 		const current = await redis.incr(windowKey);
-
-		console.log("[RATE LIMIT] Counter is now:", current, "limit:", limit);
 
 		// Set expiration on first request in window
 		if (current === 1) {

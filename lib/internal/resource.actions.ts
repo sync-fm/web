@@ -306,7 +306,6 @@ export async function useResourceRequest<T extends Resource>(
 	"use cache: private";
 	cacheTag(`music-resource:${params.identifierType}:${params.identifier}`);
 	cacheLife("seconds");
-	console.log("using resource request for:", params);
 	const res = await processResourceRequest<T>(params);
 	if (res.isErr()) {
 		return { error: res.error.error };

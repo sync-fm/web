@@ -35,8 +35,6 @@ export async function POST(request: NextRequest) {
 			callbackUrl.searchParams.set("next", redirectTo);
 		}
 
-		console.log("OAuth redirectTo URL:", callbackUrl.toString());
-
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider: provider as "discord" | "github" | "google",
 			options: {

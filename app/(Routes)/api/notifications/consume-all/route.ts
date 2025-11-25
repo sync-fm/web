@@ -11,14 +11,7 @@ export async function POST() {
 	}
 
 	try {
-		console.info("[api/notifications/consume-all] consuming", {
-			userId: user.id,
-		});
 		const deleted = await consumeAllNotifications(user.id);
-		console.info("[api/notifications/consume-all] success", {
-			userId: user.id,
-			deleted,
-		});
 		return NextResponse.json({ deleted });
 	} catch (error) {
 		console.error("[api/notifications/consume-all] failed", {

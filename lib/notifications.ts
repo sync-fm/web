@@ -169,7 +169,6 @@ export function subscribeToNotificationInserts(
 ): RealtimeChannel {
 	try {
 		const supabase = createBrowserSupabaseClient();
-		console.log(userId, NOTIFICATIONS_TABLE_NAME);
 		const channel = supabase
 			.channel(`notifications:user:${userId}`)
 			.on(
@@ -181,7 +180,6 @@ export function subscribeToNotificationInserts(
 					filter: `user_id=eq.${userId}`,
 				},
 				(payload) => {
-					console.log("[notifications] Received new notification payload", payload);
 					try {
 						const parsedRow = notificationRowSchema.parse(payload.new) as NotificationRow;
 						handler(mapRowToNotification(parsedRow));

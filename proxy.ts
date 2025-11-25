@@ -50,7 +50,6 @@ export async function proxy(request: NextRequest) {
 		const { data } = await supabase.auth.getClaims();
 		const claims = data?.claims;
 		const user = claims ? { id: claims.sub as string } : null;
-		console.log("[DEBUG] Extracted user:", user);
 
 		// Extract API key from request
 		const apiKey = extractApiKey(request.headers, request.nextUrl.searchParams);

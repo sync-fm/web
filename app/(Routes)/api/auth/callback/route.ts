@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 	const errorDescription = searchParams.get("error_description");
 
 	// if "next" is in param, use it as the redirect URL
-	let next = searchParams.get("next") ?? "/";
+	let next = searchParams.get("next") ?? "/dashboard";
 	if (!next.startsWith("/")) {
 		// if "next" is not a relative URL, use the default
 		next = "/";
@@ -37,13 +37,7 @@ export async function GET(request: NextRequest) {
 	if (code) {
 		const supabase = await createClient();
 
-		console.log("Attempting to exchange code for session");
-		console.log("Code:", code);
-		console.log("Request URL:", request.url);
-
-		const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-		console.log("Exchange result:", { data, error: exchangeError });
+		const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
 		if (!exchangeError) {
 			// Success! Redirect to the requested page

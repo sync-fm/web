@@ -21,21 +21,10 @@ export async function GET(request: NextRequest) {
 	const onOrAfter = onOrAfterParam ? new Date(onOrAfterParam) : undefined;
 
 	try {
-		console.info("[api/notifications/feed] fetching", {
-			userId: user.id,
-			limit,
-			includeExpired,
-			onOrAfter: onOrAfter?.toISOString() ?? null,
-		});
 		const notifications = await fetchNotifications(user.id, {
 			limit,
 			includeExpired,
 			onOrAfter: onOrAfter && Number.isNaN(onOrAfter.getTime()) ? undefined : onOrAfter,
-		});
-
-		console.info("[api/notifications/feed] success", {
-			userId: user.id,
-			count: notifications.length,
 		});
 
 		return NextResponse.json({

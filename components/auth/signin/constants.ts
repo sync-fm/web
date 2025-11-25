@@ -1,4 +1,5 @@
 import { type inferParserType, parseAsStringLiteral } from "nuqs";
+// biome-ignore lint/correctness/noUnusedImports: later
 import { FcGoogle } from "react-icons/fc";
 import { SiDiscord, SiGithub } from "react-icons/si";
 import type { OAuthProviderConfig } from "@/components/auth/oauth-buttons";
@@ -21,7 +22,7 @@ export const providerConfigs: OAuthProviderConfig[] = [
 		spinnerClass: "border-white",
 		icon: SiGithub,
 		brandColor: "white",
-	},
+	} /*,
 	{
 		id: "google",
 		label: "Continue with Google",
@@ -30,7 +31,7 @@ export const providerConfigs: OAuthProviderConfig[] = [
 		spinnerClass: "border-white",
 		icon: FcGoogle,
 		brandColor: null,
-	},
+	},*/,
 ];
 
 export const CARD_VARIANTS = {
