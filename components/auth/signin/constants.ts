@@ -13,7 +13,7 @@ export const providerConfigs: OAuthProviderConfig[] = [
 		spinnerClass: "border-white",
 		icon: SiDiscord,
 		brandColor: "white",
-	},
+	}/*,
 	{
 		id: "github",
 		label: "Continue with GitHub",
@@ -22,7 +22,7 @@ export const providerConfigs: OAuthProviderConfig[] = [
 		spinnerClass: "border-white",
 		icon: SiGithub,
 		brandColor: "white",
-	} /*,
+	},
 	{
 		id: "google",
 		label: "Continue with Google",

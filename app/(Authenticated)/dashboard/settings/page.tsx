@@ -28,7 +28,7 @@ const OAUTH_PROVIDERS = [
 		name: "Discord",
 		icon: SiDiscord,
 		brandColor: "#5865F2", // Discord Blurple
-	},
+	} /*,
 	{
 		id: "github",
 		name: "GitHub",
@@ -40,7 +40,7 @@ const OAUTH_PROVIDERS = [
 		name: "Google",
 		icon: FcGoogle,
 		brandColor: null, // FcGoogle already has correct colors
-	},
+	},*/,
 ] as const satisfies ReadonlyArray<{
 	id: "discord" | "github" | "google";
 	name: string;
