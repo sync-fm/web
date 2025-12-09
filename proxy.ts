@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { SyncFM } from "syncfm.ts";
 import syncfmconfig from "@/syncfm.config";
-import { useMetrics } from "./lib/analytics/usageMetrics.actions";
-import { extractApiKey, isValidApiKeyFormat, verifyApiKey } from "./lib/api-keys";
-import { checkRateLimit, type RateLimitResult } from "./lib/rate-limit";
-import { createClient } from "./lib/supabase/middleware";
-import { getRateLimitIP } from "./lib/utils/ip";
+import { useMetrics } from "@/lib/analytics/usageMetrics.actions";
+import { extractApiKey, isValidApiKeyFormat, verifyApiKey } from "@/lib/api-keys";
+import { checkRateLimit, type RateLimitResult } from "@/lib/rate-limit";
+import { createClient } from "@/lib/supabase/middleware";
+import { getRateLimitIP } from "@/lib/utils/ip";
 
 // Lazy initialize SyncFM to avoid constructor side-effects at module import time
 let _syncfm: SyncFM | null = null;
