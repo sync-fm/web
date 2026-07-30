@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Copy,
   Disc3,
-  Headphones,
   Link2,
   Music,
   RefreshCw,
@@ -23,16 +22,19 @@ import { cn } from "@/lib/utils";
 
 const OMRPC_API_URL = process.env.NEXT_PUBLIC_OMRPC_API_URL || "http://localhost:3001";
 
+interface TrackInfo {
+  name: string;
+  artists: string[];
+  albumName: string;
+  albumArtUrl: string | null;
+  artistImageUrl: string | null;
+  platform: string;
+}
+
 interface OmrpcState {
   id: string;
   pollingState: string;
-  currentTrack: {
-    name: string;
-    artists: string[];
-    albumName: string;
-    albumArtUrl: string | null;
-    platform: string;
-  } | null;
+  currentTrack: TrackInfo | null;
   lastUpdated: number | null;
   discordConnected: boolean;
   statsFmConfigured: boolean;
@@ -55,7 +57,7 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
     <button
       type="button"
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-light transition hover:glass-bg-strong hover:text-foreground"
+      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-light transition hover:bg-white/5 hover:text-foreground"
     >
       {copied ? <Check className="size-3.5 text-green-400" /> : <Copy className="size-3.5" />}
       {label || (copied ? "Copied!" : "Copy")}
@@ -63,26 +65,34 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function StepLine({ done, active }: { done: boolean; active: boolean }) {
+function StatusBadge({ label, value, color, dot }: { label: string; value: string; color: string; dot: string }) {
   return (
-    <div className={cn(
-      "h-0.5 w-full transition-colors duration-500",
-      done ? "bg-primary" : active ? "bg-primary/40" : "glass-bg-medium",
-    )} />
+    <div className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-2.5">
+      <span className={`size-2 rounded-full ${dot}`} />
+      <div className="flex flex-1 items-center justify-between gap-2">
+        <span className="text-xs text-muted-light">{label}</span>
+        <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", color)}>{value}</span>
+      </div>
+    </div>
   );
 }
 
-function StepNumber({ num, done, active }: { num: number; done: boolean; active: boolean }) {
-  return (
-    <div className={cn(
-      "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all duration-500",
-      done ? "bg-primary text-primary-foreground shadow-brand-sm" :
-      active ? "border-2 border-primary bg-primary/10 text-primary" :
-      "glass-bg-medium text-muted-subtle",
-    )}>
-      {done ? <Check className="size-4" /> : num}
-    </div>
-  );
+function RelativeTime({ timestamp }: { timestamp: number | null }) {
+  const [label, setLabel] = useState("never");
+  useEffect(() => {
+    function update() {
+      if (!timestamp) { setLabel("never"); return; }
+      const diff = Date.now() - timestamp;
+      if (diff < 5000) setLabel("just now");
+      else if (diff < 60000) setLabel(`${Math.floor(diff / 1000)}s ago`);
+      else if (diff < 3600000) setLabel(`${Math.floor(diff / 60000)}m ago`);
+      else setLabel(`${Math.floor(diff / 3600000)}h ago`);
+    }
+    update();
+    const id = setInterval(update, 10000);
+    return () => clearInterval(id);
+  }, [timestamp]);
+  return <span className="text-[11px] font-medium text-muted-subtle">Last updated {label}</span>;
 }
 
 export default function OmrpcPage() {
@@ -164,8 +174,7 @@ export default function OmrpcPage() {
     try {
       const res = await api(`/auth/${omrpcId}/url`);
       if (res.url) {
-        const w = window.open(res.url, "discord-auth", "width=500,height=700");
-        if (!w) window.location.href = res.url;
+        window.open(res.url, "discord-auth", "width=500,height=700");
       }
     } catch (e) { console.error(e); }
     finally { setTimeout(() => { setConnectingDiscord(false); fetchStatus(); }, 3000); }
@@ -192,62 +201,43 @@ export default function OmrpcPage() {
 
   if (loading) return <LoadingSpinner />;
 
-  const pollingColors: Record<string, string> = {
-    active: "bg-green-900/30 text-green-400 border-green-800",
-    poked: "bg-yellow-900/30 text-yellow-400 border-yellow-800",
-    api_delayed: "bg-orange-900/30 text-orange-400 border-orange-800",
-    idle: "bg-gray-800 text-gray-400 border-gray-700",
-    unknown: "bg-gray-800 text-gray-400 border-gray-700",
-  };
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <DashboardHeader
         title="Discord Rich Presence"
-        subtitle="Show what you're listening to on Discord — no desktop client required."
+        subtitle="Show what you're listening to on Discord - no desktop client required."
         icon={Disc3}
       />
 
       {!isSetupComplete ? (
-        /* === SETUP MODE: Step-by-step wizard === */
+        /* === SETUP WIZARD === */
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mx-auto max-w-lg space-y-10"
+          className="mx-auto max-w-lg space-y-6"
         >
-          {/* Progress header */}
-          <div className="flex items-center gap-3">
-            <StepNumber num={1} done={status?.discordConnected ?? false} active={!status?.discordConnected} />
-            <StepLine done={status?.discordConnected ?? false} active={!status?.discordConnected} />
-            <StepNumber num={2} done={isSetupComplete ?? false} active={!!(status?.discordConnected && !status?.statsFmConfigured)} />
-          </div>
-
-          {/* Step 1: Discord Auth */}
-          <motion.div
-            layout
-            className={cn(
-              "rounded-2xl border p-6 shadow-glass-sm transition-colors",
-              status?.discordConnected
-                ? "border-green-800/40 glass-bg-light"
-                : "glass-border-light glass-bg-light",
-            )}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1.5">
-                <h2 className="text-lg font-semibold text-foreground">
-                  {status?.discordConnected ? "Discord Authenticated" : "1. Authenticate Discord for Rich Presence"}
+          {/* Step 1 */}
+          <motion.div layout className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition-colors",
+                status?.discordConnected
+                  ? "bg-green-500/20 text-green-400"
+                  : "bg-white/10 text-muted-light",
+              )}>
+                {status?.discordConnected ? <Check className="size-5" /> : "1"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className={cn(
+                  "text-sm font-semibold",
+                  status?.discordConnected ? "text-green-400" : "text-foreground",
+                )}>
+                  {status?.discordConnected ? "Discord Authenticated" : "Connect Discord"}
                 </h2>
-                <p className="text-sm leading-relaxed text-muted-light">
-                  This is a <strong>separate</strong> Discord authorization specifically for Rich Presence — it is not the same as the Discord login you used to sign in to SyncFM.
-                  <br className="mt-1" />
-                  OMRPC needs its own Discord token to display your music activity on your profile.
+                <p className="mt-0.5 text-xs text-muted-subtle leading-relaxed">
+                  This is a separate authorization for Rich Presence&mdash;not the same as SyncFM login.
                 </p>
               </div>
-              {status?.discordConnected && (
-                <span className="shrink-0 rounded-full border border-green-800 bg-green-900/30 px-3 py-1 text-xs font-semibold text-green-400">
-                  Done
-                </span>
-              )}
             </div>
             <div className="mt-5">
               <button
@@ -255,183 +245,258 @@ export default function OmrpcPage() {
                 onClick={handleConnectDiscord}
                 disabled={connectingDiscord}
                 className={cn(
-                  "inline-flex items-center gap-2.5 rounded-xl px-5 py-3 text-sm font-semibold transition disabled:opacity-50",
+                  "inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition disabled:opacity-50",
                   status?.discordConnected
-                    ? "glass-bg-medium text-muted-light hover:glass-bg-strong hover:text-foreground"
+                    ? "border border-white/10 bg-white/[0.04] text-muted-light hover:bg-white/[0.08] hover:text-foreground"
                     : "bg-[#5865F2] text-white hover:bg-[#4752C4] shadow-lg shadow-[#5865F2]/20",
                 )}
               >
-                {status?.discordConnected ? <Unlink className="size-4" /> : <Link2 className="size-4" />}
+                {connectingDiscord ? (
+                  <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : status?.discordConnected ? (
+                  <Unlink className="size-4" />
+                ) : (
+                  <Link2 className="size-4" />
+                )}
                 {connectingDiscord ? "Opening Discord..." :
-                 status?.discordConnected ? "Reconnect Discord" : "Authenticate with Discord"}
+                 status?.discordConnected ? "Reconnect" : "Authenticate with Discord"}
               </button>
             </div>
           </motion.div>
 
-          {/* Step 2: Stats.fm */}
+          {/* Connector line */}
+          <div className="flex justify-center">
+            <div className={cn(
+              "h-6 w-px transition-colors",
+              status?.discordConnected ? "bg-green-500/30" : "bg-white/10",
+            )} />
+          </div>
+
+          {/* Step 2 */}
           <motion.div
             layout
             className={cn(
-              "rounded-2xl border p-6 shadow-glass-sm transition-colors",
+              "rounded-2xl border p-6 shadow-sm transition-all",
               status?.statsFmConfigured
-                ? "border-green-800/40 glass-bg-light"
-                : "glass-border-light glass-bg-light",
-              !status?.discordConnected && "pointer-events-none opacity-40",
+                ? "border-green-500/20 bg-green-500/[0.03]"
+                : "border-white/10 bg-white/[0.03]",
+              !status?.discordConnected && "pointer-events-none opacity-40 saturate-0",
             )}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1.5">
-                <h2 className="text-lg font-semibold text-foreground">
-                  {status?.statsFmConfigured ? "Stats.fm Connected" : "2. Connect Stats.fm"}
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition-colors",
+                status?.statsFmConfigured
+                  ? "bg-green-500/20 text-green-400"
+                  : "bg-white/10 text-muted-light",
+              )}>
+                {status?.statsFmConfigured ? <Check className="size-5" /> : "2"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className={cn(
+                  "text-sm font-semibold",
+                  status?.statsFmConfigured ? "text-green-400" : "text-foreground",
+                )}>
+                  {status?.statsFmConfigured ? "Stats.fm Connected" : "Connect Stats.fm"}
                 </h2>
-                <p className="text-sm leading-relaxed text-muted-light">
-                  OMRPC uses Stats.fm to know what you&apos;re listening to.
+                <p className="mt-0.5 text-xs text-muted-subtle leading-relaxed">
+                  Used to know what you&apos;re listening to.
                   {!status?.discordConnected && " Complete step 1 first."}
                 </p>
               </div>
-              {status?.statsFmConfigured && (
-                <span className="shrink-0 rounded-full border border-green-800 bg-green-900/30 px-3 py-1 text-xs font-semibold text-green-400">
-                  Done
-                </span>
-              )}
             </div>
             {!status?.statsFmConfigured && (
               <div className="mt-5 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-subtle">Stats.fm User ID</label>
+                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-subtle">Stats.fm User ID</label>
                     <input
                       type="text" value={sfId} onChange={e => setSfId(e.target.value)}
-                      placeholder="Your stats.fm username"
-                      className="w-full rounded-xl border glass-border-light glass-bg-medium px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-subtle transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      placeholder="e.g. xwxfox"
+                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-subtle transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-subtle">Auth Token</label>
+                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-subtle">Auth Token</label>
                     <input
                       type="password" value={sfToken} onChange={e => setSfToken(e.target.value)}
                       placeholder="Your stats.fm access token"
-                      className="w-full rounded-xl border glass-border-light glass-bg-medium px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-subtle transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-subtle transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                     />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSaveConfig}
-                  disabled={saving || (!sfId && !sfToken)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-brand-sm transition hover:brightness-105 disabled:opacity-50"
-                >
-                  <Settings className="size-4" />
-                  {saving ? "Saving..." : "Save & Finish Setup"}
-                </button>
-                {saved && <span className="text-sm text-green-400">Saved!</span>}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSaveConfig}
+                    disabled={saving || (!sfId && !sfToken)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-brand-sm transition hover:brightness-105 disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    ) : (
+                      <Settings className="size-4" />
+                    )}
+                    {saving ? "Saving..." : "Save & Finish Setup"}
+                  </button>
+                  {saved && (
+                    <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className="text-xs text-green-400">
+                      Saved!
+                    </motion.span>
+                  )}
+                </div>
               </div>
             )}
           </motion.div>
-
-          <p className="text-center text-xs text-muted-subtle">
-            Your credentials are stored securely. You can change them later in settings.
-          </p>
         </motion.div>
       ) : (
-        /* === DASHBOARD MODE: Now Playing + Status === */
-        <>
-          {/* Connected status banner */}
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 rounded-2xl border border-green-800/30 bg-green-900/10 px-5 py-3"
-          >
-            <span className="flex size-2.5 shrink-0 rounded-full bg-green-400 shadow-[0_0_10px_rgb(74,222,128)]" />
-            <span className="text-sm text-green-300">
-              All set! Your Discord Rich Presence is running{status?.pollingState === "active" ? " and updating live." : status?.pollingState === "poked" ? " and will update every 15s for the next 5 minutes." : "."}
-            </span>
-          </motion.div>
-
-          {/* Now Playing */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border glass-border-light glass-bg-light p-6 shadow-glass-sm"
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Headphones className="size-5 text-primary" />
-                <h2 className="text-lg font-semibold text-foreground">Now Playing</h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-1">
-                  <button type="button" onClick={fetchState} className="rounded-lg p-2 text-muted-light transition hover:glass-bg-strong hover:text-foreground">
-                    <RefreshCw className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handlePoke}
-                    disabled={poking}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-muted-light transition hover:glass-bg-strong hover:text-foreground disabled:opacity-50"
-                  >
-                    <Zap className={cn("size-3.5", poking && "animate-pulse text-yellow-400")} />
-                    {poking ? "Poking..." : "Wake up"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5">
-              {state?.currentTrack ? (
-                <div className="flex items-center gap-5 rounded-xl glass-bg-medium p-5">
-                  {state.currentTrack.albumArtUrl && (
-                    <img src={state.currentTrack.albumArtUrl} alt="" className="size-20 shrink-0 rounded-xl object-cover shadow-md" />
-                  )}
+        /* === DASHBOARD === */
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-2xl space-y-5"
+        >
+          {/* Now Playing Card */}
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent shadow-sm">
+            {state?.currentTrack ? (
+              <div className="relative">
+                {/* Background art blur */}
+                {state.currentTrack.albumArtUrl && (
+                  <div className="absolute inset-0 overflow-hidden">
+                    <img
+                      src={state.currentTrack.albumArtUrl}
+                      alt=""
+                      className="size-full object-cover opacity-[0.08] blur-3xl"
+                    />
+                  </div>
+                )}
+                <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
+                  {/* Album art */}
+                  <div className="relative shrink-0">
+                    <div className="relative">
+                      {state.currentTrack.albumArtUrl ? (
+                        <img
+                          src={state.currentTrack.albumArtUrl}
+                          alt={`${state.currentTrack.name} album art`}
+                          className="size-28 rounded-2xl object-cover shadow-lg ring-1 ring-white/10 sm:size-36"
+                        />
+                      ) : (
+                        <div className="flex size-28 items-center justify-center rounded-2xl bg-white/[0.06] sm:size-36">
+                          <Music className="size-10 text-muted-subtle" />
+                        </div>
+                      )}
+                      {/* Spinning record overlay */}
+                      <div className="absolute -inset-3 -z-10 flex items-center justify-center">
+                        <div className="size-36 animate-[spin_8s_linear_infinite] rounded-full border-2 border-white/[0.03] bg-gradient-to-br from-white/[0.02] to-transparent sm:size-44" />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Track info */}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-lg font-semibold text-foreground">{state.currentTrack.name}</p>
-                    <p className="truncate text-sm text-muted-light">{state.currentTrack.artists?.join(", ")}</p>
-                    <div className="mt-2 flex items-center gap-2.5">
-                      <span className="truncate text-xs text-muted-subtle">{state.currentTrack.albumName}</span>
-                      <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                    <p className="text-xl font-bold text-foreground leading-tight truncate sm:text-2xl">
+                      {state.currentTrack.name}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-light truncate">
+                      {state.currentTrack.artists?.join(", ")}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-subtle truncate">
+                      {state.currentTrack.albumName}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
                         {state.currentTrack.platform}
+                      </span>
+                      <span className="flex items-center gap-1.5 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[11px] font-semibold text-green-400">
+                        <span className="size-1.5 animate-pulse rounded-full bg-green-400" />
+                        Listening
                       </span>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3 rounded-xl glass-bg-medium py-12 text-center">
-                  <Music className="size-10 text-muted-subtle" />
-                  <div>
-                    <p className="text-sm font-medium text-muted-light">No track currently playing</p>
-                    <p className="mt-0.5 text-xs text-muted-subtle">Start playing music on Spotify or Apple Music — it&apos;ll show up here automatically.</p>
-                  </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-4 px-6 py-16 text-center">
+                <div className="flex size-16 items-center justify-center rounded-2xl bg-white/[0.04]">
+                  <Music className="size-8 text-muted-subtle" />
                 </div>
-              )}
-            </div>
+                <div>
+                  <p className="text-base font-semibold text-muted-light">No track detected</p>
+                  <p className="mt-1 text-sm text-muted-subtle leading-relaxed">
+                    Play something on Spotify or Apple Music&mdash;it&apos;ll show up here automatically.
+                  </p>
+                </div>
+              </div>
+            )}
 
-            {/* Status grid */}
-            <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { label: "Polling", value: state?.pollingState ?? "unknown", color: pollingColors[state?.pollingState ?? "unknown"] ?? pollingColors.unknown },
-                { label: "Discord", value: state?.discordConnected ? "connected" : "disconnected", color: state?.discordConnected ? pollingColors.active : "bg-red-900/30 text-red-400 border-red-800" },
-                { label: "Stats.fm", value: state?.statsFmConfigured ? "configured" : "not set", color: state?.statsFmConfigured ? pollingColors.active : pollingColors.idle },
-                { label: "Last updated", value: state?.lastUpdated ? new Date(state.lastUpdated).toLocaleTimeString() : "never", color: pollingColors.idle },
-              ].map(p => (
-                <div key={p.label} className="flex items-center justify-between rounded-xl glass-border-light glass-bg-medium px-4 py-3">
-                  <span className="text-sm text-muted-light">{p.label}</span>
-                  <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-semibold", p.color)}>{p.value}</span>
+            {/* Bottom bar: status + actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 bg-white/[0.015] px-5 py-3 sm:px-6">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                <RelativeTime timestamp={state?.lastUpdated ?? null} />
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    "size-1.5 rounded-full",
+                    state?.pollingState === "active" || state?.pollingState === "poked"
+                      ? "bg-green-400" : "bg-gray-500",
+                  )} />
+                  <span className="text-[11px] font-medium text-muted-subtle capitalize">{state?.pollingState ?? "unknown"}</span>
                 </div>
-              ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={fetchState} className="rounded-lg p-2 text-muted-light transition hover:bg-white/[0.06] hover:text-foreground">
+                  <RefreshCw className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePoke}
+                  disabled={poking}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-1.5 text-xs font-semibold text-yellow-400 transition hover:bg-yellow-500/20 disabled:opacity-50"
+                >
+                  <Zap className={cn("size-3.5", poking && "animate-pulse")} />
+                  {poking ? "Poking..." : "Wake up"}
+                </button>
+              </div>
             </div>
-          </motion.div>
-        </>
+          </div>
+
+          {/* Status grid */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <StatusBadge
+              label="Discord"
+              value={state?.discordConnected ? "Connected" : "Disconnected"}
+              color={state?.discordConnected ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}
+              dot={state?.discordConnected ? "bg-green-400" : "bg-red-400"}
+            />
+            <StatusBadge
+              label="Stats.fm"
+              value={state?.statsFmConfigured ? "Configured" : "Not set"}
+              color={state?.statsFmConfigured ? "bg-green-500/15 text-green-400" : "bg-gray-500/15 text-gray-400"}
+              dot={state?.statsFmConfigured ? "bg-green-400" : "bg-gray-500"}
+            />
+            <StatusBadge
+              label="Polling"
+              value={state?.pollingState ?? "unknown"}
+              color={state?.pollingState === "active" || state?.pollingState === "poked"
+                ? "bg-green-500/15 text-green-400"
+                : "bg-gray-500/15 text-gray-400"}
+              dot={state?.pollingState === "active" || state?.pollingState === "poked"
+                ? "bg-green-400" : "bg-gray-500"}
+            />
+            <StatusBadge
+              label="Last updated"
+              value={state?.lastUpdated ? new Date(state.lastUpdated).toLocaleTimeString() : "-"}
+              color="bg-white/[0.04] text-muted-light"
+              dot="bg-white/20"
+            />
+          </div>
+        </motion.div>
       )}
 
-      {/* === SETTINGS PANEL: API creds, reconfigure, docs — shown regardless but collapsed when in setup mode === */}
-      <motion.div
-        layout
-        className="rounded-2xl border glass-border-light glass-bg-light shadow-glass-sm"
-      >
+      {/* === SETTINGS PANEL === */}
+      <motion.div layout className="rounded-2xl border border-white/10 bg-white/[0.02] shadow-sm">
         <button
           type="button"
           onClick={() => setShowSettings(!showSettings)}
-          className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left"
+          className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left sm:px-6"
         >
           <div className="flex items-center gap-3">
             <Settings className="size-5 text-muted-light" />
@@ -451,20 +516,20 @@ export default function OmrpcPage() {
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="overflow-hidden"
             >
-              <div className="space-y-6 border-t glass-border-light px-6 pb-6 pt-5">
+              <div className="space-y-6 border-t border-white/10 px-5 pb-6 pt-5 sm:px-6">
                 {/* API Credentials */}
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">API Credentials</h3>
                   <p className="mt-1 text-xs text-muted-subtle">Use these to interact with the OMRPC API programmatically.</p>
-                  <div className="mt-3 space-y-3">
-                    <div className="flex items-center gap-3 rounded-xl glass-bg-medium px-4 py-3">
-                      <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-subtle w-16">User ID</span>
-                      <code className="flex-1 truncate font-mono text-sm text-primary">{omrpcId || "—"}</code>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-3 rounded-xl border border-white/[0.04] bg-white/[0.02] px-4 py-3">
+                      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted-subtle w-16">User ID</span>
+                      <code className="flex-1 truncate font-mono text-sm text-primary">{omrpcId || "-"}</code>
                       {omrpcId && <CopyButton text={omrpcId} />}
                     </div>
-                    <div className="flex items-center gap-3 rounded-xl glass-bg-medium px-4 py-3">
-                      <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-subtle w-16">Auth Code</span>
-                      <code className="flex-1 truncate font-mono text-sm text-green-400">{authCode || "—"}</code>
+                    <div className="flex items-center gap-3 rounded-xl border border-white/[0.04] bg-white/[0.02] px-4 py-3">
+                      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted-subtle w-16">Auth Code</span>
+                      <code className="flex-1 truncate font-mono text-sm text-green-400">{authCode || "-"}</code>
                       {authCode && <CopyButton text={authCode} />}
                     </div>
                   </div>
@@ -472,27 +537,26 @@ export default function OmrpcPage() {
 
                 {/* API Usage */}
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">Using the API</h3>
+                  <h3 className="text-sm font-semibold text-foreground">API Reference</h3>
                   <p className="mt-1 text-xs text-muted-subtle">All requests need a valid auth code as a query parameter.</p>
-                  <div className="mt-3 space-y-2 font-mono text-xs">
-                    <div className="rounded-xl glass-bg-medium px-4 py-2.5">
-                      <span className="text-muted-subtle"># Get current track</span>
-                      <br />
-                      <span className="text-green-400">GET</span>
-                      <span className="text-muted-light"> /api/user/&#123;id&#125;/state?code=&#123;authCode&#125;</span>
-                    </div>
-                    <div className="rounded-xl glass-bg-medium px-4 py-2.5">
-                      <span className="text-muted-subtle"># Trigger active polling</span>
-                      <br />
-                      <span className="text-yellow-400">GET</span>
-                      <span className="text-muted-light"> /api/user/&#123;id&#125;/poke?code=&#123;authCode&#125;</span>
-                    </div>
-                    <div className="rounded-xl glass-bg-medium px-4 py-2.5">
-                      <span className="text-muted-subtle"># Get user status</span>
-                      <br />
-                      <span className="text-blue-400">GET</span>
-                      <span className="text-muted-light"> /api/user/&#123;id&#125;/status</span>
-                    </div>
+                  <div className="mt-3 space-y-1.5 font-mono text-xs">
+                    {[
+                      { method: "GET", path: `/api/user/{id}/state?code={authCode}`, desc: "Get current track", color: "text-green-400" },
+                      { method: "GET", path: `/api/user/{id}/poke?code={authCode}`, desc: "Trigger active polling", color: "text-yellow-400" },
+                      { method: "GET", path: `/api/user/{id}/status`, desc: "Get user status", color: "text-blue-400" },
+                    ].map(ep => (
+                      <div key={ep.path} className="flex items-center gap-3 rounded-xl border border-white/[0.03] bg-white/[0.015] px-4 py-2.5">
+                        <span className="shrink-0 rounded-md bg-white/[0.04] px-2 py-0.5 font-bold text-muted-subtle">{ep.desc}</span>
+                        <span className={cn("shrink-0 font-bold", ep.color)}>{ep.method}</span>
+                        <code className="truncate text-muted-light">{ep.path}</code>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/[0.04] bg-white/[0.02] px-4 py-3 text-xs">
+                    <Terminal className="size-4 text-muted-light shrink-0" />
+                    <span className="text-muted-subtle">Base URL:</span>
+                    <code className="font-mono text-primary">{OMRPC_API_URL}</code>
+                    <CopyButton text={OMRPC_API_URL} label="Copy URL" />
                   </div>
                 </div>
 
@@ -500,14 +564,18 @@ export default function OmrpcPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Reconfigure</h3>
                   <p className="mt-1 text-xs text-muted-subtle">Update your Discord connection or Stats.fm credentials.</p>
-                  <div className="mt-3 flex flex-wrap gap-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
                     <button
                       type="button"
                       onClick={handleConnectDiscord}
                       disabled={connectingDiscord}
                       className="inline-flex items-center gap-2 rounded-xl bg-[#5865F2]/80 px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5865F2] disabled:opacity-50"
                     >
-                      <Link2 className="size-4" />
+                      {connectingDiscord ? (
+                        <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      ) : (
+                        <Link2 className="size-4" />
+                      )}
                       {status?.discordConnected ? "Reconnect Discord" : "Connect Discord"}
                     </button>
 
@@ -515,20 +583,20 @@ export default function OmrpcPage() {
                       <input
                         type="text" value={sfId} onChange={e => setSfId(e.target.value)}
                         placeholder="Stats.fm User ID"
-                        className="w-40 rounded-xl border glass-border-light glass-bg-medium px-3 py-2 text-xs text-foreground placeholder:text-muted-subtle transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                        className="w-36 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground placeholder:text-muted-subtle transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                       />
                       <input
                         type="password" value={sfToken} onChange={e => setSfToken(e.target.value)}
                         placeholder="Auth Token"
-                        className="w-40 rounded-xl border glass-border-light glass-bg-medium px-3 py-2 text-xs text-foreground placeholder:text-muted-subtle transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                        className="w-36 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-foreground placeholder:text-muted-subtle transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                       />
                       <button
                         type="button"
                         onClick={handleSaveConfig}
                         disabled={saving || (!sfId && !sfToken)}
-                        className="inline-flex items-center gap-2 rounded-xl glass-bg-medium px-4 py-2 text-xs font-semibold text-foreground transition hover:glass-bg-strong disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/[0.08] disabled:opacity-50"
                       >
-                        {saving ? "Saving..." : "Update Stats.fm"}
+                        {saving ? "Saving..." : "Update"}
                       </button>
                     </div>
                   </div>
@@ -537,24 +605,6 @@ export default function OmrpcPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
-
-      {/* API endpoint reference */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="rounded-2xl border glass-border-light glass-bg-light p-5 shadow-glass-sm"
-      >
-        <div className="flex items-center gap-3">
-          <Terminal className="size-5 text-muted-light" />
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Quick reference</h3>
-            <p className="mt-0.5 text-xs text-muted-subtle">
-              Base URL: <code className="rounded bg-glass-bg-medium px-1.5 py-0.5 font-mono text-primary">{OMRPC_API_URL}</code>
-            </p>
-          </div>
-        </div>
       </motion.div>
     </div>
   );
