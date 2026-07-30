@@ -1,6 +1,7 @@
 export enum usedEnvs {
 	SPOTIFY_CLIENT_ID = "SPOTIFY_CLIENT_ID",
 	SPOTIFY_CLIENT_SECRET = "SPOTIFY_CLIENT_SECRET",
+	NEXT_PUBLIC_OMRPC_API_URL = "NEXT_PUBLIC_OMRPC_API_URL",
 	NEXT_PUBLIC_SUPABASE_ANON_KEY = "NEXT_PUBLIC_SUPABASE_ANON_KEY",
 	NEXT_PUBLIC_SUPABASE_URL = "NEXT_PUBLIC_SUPABASE_URL",
 	SUPABASE_SERVICE_KEY = "SUPABASE_SERVICE_KEY",
@@ -21,6 +22,7 @@ export enum usedEnvs {
 const defaultEnvValues: Record<usedEnvs, string> = {
 	SPOTIFY_CLIENT_ID: "your-spotify-client-id",
 	SPOTIFY_CLIENT_SECRET: "your-spotify-client-secret",
+	NEXT_PUBLIC_OMRPC_API_URL: "http://localhost:3001",
 	NEXT_PUBLIC_SUPABASE_ANON_KEY: "your-supabase-key",
 	NEXT_PUBLIC_SUPABASE_URL: "your-supabase-url",
 	SUPABASE_SERVICE_KEY: "your-supabase-service-key",
@@ -41,6 +43,7 @@ const defaultEnvValues: Record<usedEnvs, string> = {
 const failIfDefaultMap: Record<usedEnvs, boolean> = {
 	SPOTIFY_CLIENT_ID: true,
 	SPOTIFY_CLIENT_SECRET: true,
+	NEXT_PUBLIC_OMRPC_API_URL: false,
 	NEXT_PUBLIC_SUPABASE_ANON_KEY: true,
 	NEXT_PUBLIC_SUPABASE_URL: true,
 	SUPABASE_SERVICE_KEY: false, // Optional for now, required later for auth

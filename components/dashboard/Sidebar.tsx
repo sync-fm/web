@@ -2,7 +2,7 @@
 
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { motion } from "framer-motion";
-import { BarChart3, Home, Key, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { BarChart3, Disc3, Home, Key, LayoutDashboard, LogOut, Settings } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactElement } from "react";
@@ -52,6 +52,12 @@ const dashboardNavRoutes: NavRoute[] = [
 		link: "/dashboard/settings",
 		title: "Settings",
 		icon: <Settings />,
+	},
+	{
+		id: "omrpc",
+		link: "/dashboard/omrpc",
+		title: "Discord RPC",
+		icon: <Disc3 />,
 	},
 ];
 
